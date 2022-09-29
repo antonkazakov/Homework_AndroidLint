@@ -1,24 +1,6 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
-    id("io.gitlab.arturbosch.detekt").version("1.20.0")
-}
-
-detekt {
-    parallel = true
-    source = files("$rootDir")
-    config = files("$rootDir/app/detekt/detekt.yml")
-}
-
-tasks.withType(io.gitlab.arturbosch.detekt.Detekt).configureEach {
-    reports {
-        xml.required.set(false)
-        txt.required.set(false)
-        sarif.required.set(false)
-        html.required.set(true)
-        html.outputLocation.set(file("build/reports/detekt.html"))
-    }
-    include("**/src/main/java", "**/src/main/kotlin", "**/src/main/test")
 }
 
 android {
@@ -49,7 +31,7 @@ android {
     }
 
     lint {
-        checkOnly("GlobalScopeUsage", "JobInBuilderUsage", "RawColorUsage")
+        checkOnly("GlobalScopeUsage")//, "JobInBuilderUsage", "RawColorUsage")
     }
 }
 
