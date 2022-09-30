@@ -23,7 +23,7 @@ import org.jetbrains.uast.tryResolve
 const val GLOBAL_SCOPE_USAGES_ISSUE_ID = "GlobalScopeUsage"
 const val GLOBAL_SCOPE_USAGES_ISSUE_BRIEF_DESCRIPTION = "BriefDescription - GlobalScopeUsage"
 const val GLOBAL_SCOPE_USAGES_ISSUE_EXPLANATION = "Explanation - GlobalScopeUsage"
-const val RECEIVER_TYPE_OF_CALL_EXPRESSION = "kotlinx.coroutines.GlobalScope"
+const val RECEIVER_TYPE = "kotlinx.coroutines.GlobalScope"
 const val VIEW_MODEL_ARTIFACT = "androidx.lifecycle:lifecycle-viewmodel-ktx"
 const val FRAGMENT_ARTIFACT = "androidx.lifecycle:lifecycle-runtime-ktx"
 const val VIEW_MODEL = "androidx.lifecycle.ViewModel"
@@ -60,7 +60,7 @@ class GlobalScopeUsagesDetector : Detector(), SourceCodeScanner {
                 val canonicalReceiverText =
                     context.evaluator.getClassType(receiverPsiClass)?.canonicalText
 
-                if (canonicalReceiverText == RECEIVER_TYPE_OF_CALL_EXPRESSION) {
+                if (canonicalReceiverText == RECEIVER_TYPE) {
                     val containingUClass = node.getContainingUClass()
                     val location = context.getLocation(node.receiver.sourcePsi)
 
