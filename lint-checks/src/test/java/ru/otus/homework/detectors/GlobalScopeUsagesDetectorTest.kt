@@ -117,13 +117,13 @@ class GlobalScopeUsagesDetectorTest {
     }
 
     private val expectedValue =
-        """src/GlobalScopeTestCase.kt:4: Error: BriefDescription [GlobalScopeUsage]
+        """src/ru/otus/homework/linthomework/globalscopeusage/GlobalScopeTestCase.kt:12: Error: BriefDescription - GlobalScopeUsage [GlobalScopeUsage]
         GlobalScope.launch {
         ~~~~~~~~~~~
-src/GlobalScopeTestCase.kt:8: Error: BriefDescription [GlobalScopeUsage]
+src/ru/otus/homework/linthomework/globalscopeusage/GlobalScopeTestCase.kt:16: Error: BriefDescription - GlobalScopeUsage [GlobalScopeUsage]
         GlobalScope.actor<String> {
         ~~~~~~~~~~~
-src/GlobalScopeTestCase.kt:16: Error: BriefDescription [GlobalScopeUsage]
+src/ru/otus/homework/linthomework/globalscopeusage/GlobalScopeTestCase.kt:24: Error: BriefDescription - GlobalScopeUsage [GlobalScopeUsage]
             val deferred = GlobalScope.async {
                            ~~~~~~~~~~~
 3 errors, 0 warnings
