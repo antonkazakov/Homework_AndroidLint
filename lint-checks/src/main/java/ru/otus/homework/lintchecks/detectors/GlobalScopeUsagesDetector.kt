@@ -11,25 +11,27 @@ import com.android.tools.lint.detector.api.Location
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.android.tools.lint.detector.api.SourceCodeScanner
-import com.android.tools.lint.model.LintModelLibrary
 import com.intellij.psi.PsiClass
 import org.jetbrains.uast.UClass
 import org.jetbrains.uast.UElement
 import org.jetbrains.uast.UQualifiedReferenceExpression
 import org.jetbrains.uast.getContainingUClass
 import org.jetbrains.uast.tryResolve
+import ru.otus.homework.lintchecks.FRAGMENT
+import ru.otus.homework.lintchecks.FRAGMENT_ARTIFACT
+import ru.otus.homework.lintchecks.LIFECYCLE_SCOPE
+import ru.otus.homework.lintchecks.VIEW_MODEL
+import ru.otus.homework.lintchecks.VIEW_MODEL_ARTIFACT
+import ru.otus.homework.lintchecks.VIEW_MODEL_SCOPE
+import ru.otus.homework.lintchecks.isContainsInClassPath
+import ru.otus.homework.lintchecks.isExtendsOfClass
 
 
-const val GLOBAL_SCOPE_USAGES_ISSUE_ID = "GlobalScopeUsage"
-const val GLOBAL_SCOPE_USAGES_ISSUE_BRIEF_DESCRIPTION = "BriefDescription - GlobalScopeUsage"
-const val GLOBAL_SCOPE_USAGES_ISSUE_EXPLANATION = "Explanation - GlobalScopeUsage"
-const val RECEIVER_TYPE = "kotlinx.coroutines.GlobalScope"
-const val VIEW_MODEL_ARTIFACT = "androidx.lifecycle:lifecycle-viewmodel-ktx"
-const val FRAGMENT_ARTIFACT = "androidx.lifecycle:lifecycle-runtime-ktx"
-const val VIEW_MODEL = "androidx.lifecycle.ViewModel"
-const val FRAGMENT = "androidx.fragment.app.Fragment"
-const val VIEW_MODEL_LINT_FIX = "viewModelScope"
-const val FRAGMENT_LINT_FIX = "lifecycleScope"
+private const val GLOBAL_SCOPE_USAGES_ISSUE_ID = "GlobalScopeUsage"
+private const val GLOBAL_SCOPE_USAGES_ISSUE_BRIEF_DESCRIPTION =
+    "BriefDescription - GlobalScopeUsage"
+private const val GLOBAL_SCOPE_USAGES_ISSUE_EXPLANATION = "Explanation - GlobalScopeUsage"
+private const val RECEIVER_TYPE = "kotlinx.coroutines.GlobalScope"
 
 @Suppress("UnstableApiUsage")
 class GlobalScopeUsagesDetector : Detector(), SourceCodeScanner {
@@ -96,28 +98,11 @@ class GlobalScopeUsagesDetector : Detector(), SourceCodeScanner {
         }
     }
 
-    private fun isContainsInClassPath(dependencies: List<LintModelLibrary>?, artifact: String) =
-        dependencies?.any { library ->
-            library.identifier.contains(artifact)
-        } ?: false
-
-    private fun isExtendsOfClass(
-        context: JavaContext,
-        containingUClass: UClass?,
-        expectedExtendClass: String
-    ): Boolean = context
-        .evaluator
-        .extendsClass(
-            containingUClass,
-            expectedExtendClass,
-            false
-        )
-
     private fun createViewModelFix(location: Location): LintFix =
-        createViewFix(location, VIEW_MODEL_LINT_FIX)
+        createViewFix(location, VIEW_MODEL_SCOPE)
 
     private fun createFragmentFix(location: Location): LintFix =
-        createViewFix(location, FRAGMENT_LINT_FIX)
+        createViewFix(location, LIFECYCLE_SCOPE)
 
     private fun createViewFix(location: Location, newText: String): LintFix = fix()
         .replace()

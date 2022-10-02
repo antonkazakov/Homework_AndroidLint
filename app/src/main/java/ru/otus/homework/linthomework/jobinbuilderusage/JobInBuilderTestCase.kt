@@ -40,4 +40,13 @@ class JobInBuilderTestCase(
             println("Hello World")
         }
     }
+
+    fun case5() {
+        viewModelScope.launch {
+            launch(NonCancellable) {
+                delay(1000)
+                println("Hello World")
+            }
+        }
+    }
 }
