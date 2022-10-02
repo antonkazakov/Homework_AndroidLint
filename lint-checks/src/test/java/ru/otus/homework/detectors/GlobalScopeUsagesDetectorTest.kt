@@ -1,65 +1,14 @@
 package ru.otus.homework.detectors
 
-import com.android.tools.lint.checks.infrastructure.LintDetectorTest.java
 import com.android.tools.lint.checks.infrastructure.LintDetectorTest.kotlin
 import com.android.tools.lint.checks.infrastructure.TestLintTask
 import org.junit.Test
+import ru.otus.homework.detectors.stubs.coroutinesKotlinX
+import ru.otus.homework.detectors.stubs.viewModelFile
+import ru.otus.homework.detectors.stubs.viewModelScope
 import ru.otus.homework.lintchecks.detectors.GlobalScopeUsagesDetector
 
 class GlobalScopeUsagesDetectorTest {
-
-    private val coroutineScope = kotlin(
-        """
-        package kotlinx.coroutines
-        
-        public interface CoroutineScope {
-            public val coroutineContext: CoroutineContext
-        }
-
-        public object GlobalScope : CoroutineScope {
-            /**
-             * Returns [EmptyCoroutineContext].
-             */
-            override val coroutineContext: CoroutineContext
-        }
-    """.trimIndent()
-    ).indented()
-
-    private val viewModelScope = kotlin(
-        """
-        package androidx.lifecycle
-
-        public val ViewModel.viewModelScope: CoroutineScope
-    """.trimIndent()
-    ).indented()
-
-    private val viewModelFile = java(
-        """
-        package androidx.lifecycle;
-
-        public abstract class ViewModel {
-            
-            @SuppressWarnings("WeakerAccess")
-            protected void onCleared() {
-            }
-
-            @MainThread
-            final void clear() {
-            } 
-                   
-            @SuppressWarnings("unchecked")
-            <T> T setTagIfAbsent(String key, T newValue) {
-            }
-
-            /**
-             * Returns the tag associated with this viewmodel and the specified key.
-             */
-            @SuppressWarnings({"TypeParameterUnusedInFormals", "unchecked"})
-            <T> T getTag(String key) {
-            }
-        }
-    """.trimIndent()
-    ).indented()
 
     private val testLint = TestLintTask
         .lint()
@@ -110,7 +59,7 @@ class GlobalScopeUsagesDetectorTest {
                         }
                     }
                 """.trimIndent()
-            ).indented(), viewModelFile, viewModelScope, coroutineScope
+            ).indented(), viewModelFile, viewModelScope, coroutinesKotlinX
         )
             .run()
             .expect(expectedValue)
