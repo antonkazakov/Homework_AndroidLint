@@ -27,8 +27,10 @@ import ru.otus.homework.lintchecks.isContainsInClassPath
 import ru.otus.homework.lintchecks.isExtendsOfClass
 
 const val JOB_IN_BUILDER_ISSUE_ID = "JobInBuilderUsage"
-const val JOB_IN_BUILDER_ISSUE_BRIEF_DESCRIPTION = "briefDescription - JobInBuilderUsage"
-const val JOB_IN_BUILDER_ISSUE_EXPLANATION = "explanation - JobInBuilderUsage"
+const val JOB_IN_BUILDER_ISSUE_BRIEF_DESCRIPTION =
+    "briefDescription - Don't use jobs in parameters coroutine builders"
+const val JOB_IN_BUILDER_ISSUE_EXPLANATION =
+    "explanation - Don't use jobs in parameters coroutine builders"
 const val COROUTINE_SCOPE = "kotlinx.coroutines.CoroutineScope"
 const val JOB = "kotlinx.coroutines.Job"
 const val SUPERVISOR_JOB = "SupervisorJob"
@@ -56,17 +58,17 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
     }
 
     override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
-        val classTypeOfReceiver = context.evaluator.getTypeClass(node.receiverType)
+        val psiClassOfReceiver = context.evaluator.getTypeClass(node.receiverType)
         val isInvokeMethodOnCoroutineScope = context.evaluator.inheritsFrom(
-            classTypeOfReceiver,
+            psiClassOfReceiver,
             COROUTINE_SCOPE,
             false
         )
 
         if (isInvokeMethodOnCoroutineScope) {
-            node.valueArguments.forEach { uExpression ->
-                if (uExpression !is ULambdaExpression) {
-                    uExpression.accept(
+            node.valueArguments.forEach { argumentOfCoroutineBuilderMethod ->
+                if (argumentOfCoroutineBuilderMethod !is ULambdaExpression) {
+                    argumentOfCoroutineBuilderMethod.accept(
                         ParameterMethodVisitor(context, node, fix(), getApplicableMethodNames())
                     )
                 }
@@ -74,40 +76,42 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
         }
     }
 
-    class ParameterMethodVisitor(
+    private class ParameterMethodVisitor(
         private val context: JavaContext,
-        private val uCallExpression: UCallExpression,
+        private val coroutineBuilderMethod: UCallExpression,
         private val lintFix: LintFix.Builder,
-        private val methodNames: List<String>
+        private val applicableCoroutineBuilderMethodNames: List<String>
     ) : AbstractUastVisitor() {
+
         override fun visitElement(node: UElement): Boolean {
             if (node is USimpleNameReferenceExpression) {
-                val psiClass = context.evaluator.getTypeClass(node.getExpressionType())
+                val psiClassOfMethodParameter =
+                    context.evaluator.getTypeClass(node.getExpressionType())
                 val isInheritsFromJob =
-                    context.evaluator.inheritsFrom(psiClass, JOB, false)
+                    context.evaluator.inheritsFrom(psiClassOfMethodParameter, JOB, false)
 
                 if (isInheritsFromJob) {
-                    report(uCallExpression, node)
+                    report(coroutineBuilderMethod, node)
                 }
             }
             return false
         }
 
         private fun report(
-            uCallExpression: UCallExpression,
-            simpleNameReferenceExpression: USimpleNameReferenceExpression
+            coroutineBuilderMethod: UCallExpression,
+            jobParameterOfMethod: USimpleNameReferenceExpression
         ) {
-            val location = context.getLocation(simpleNameReferenceExpression)
+            val location = context.getLocation(jobParameterOfMethod)
             val reportSettings = createReportSettings(
                 location,
                 context,
-                uCallExpression,
-                simpleNameReferenceExpression
+                coroutineBuilderMethod,
+                jobParameterOfMethod
             )
 
             context.report(
                 ISSUE,
-                simpleNameReferenceExpression,
+                jobParameterOfMethod,
                 location,
                 reportSettings.description,
                 reportSettings.lintFix
@@ -117,36 +121,41 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
         private fun createReportSettings(
             location: Location,
             context: JavaContext,
-            uCallExpression: UCallExpression,
-            simpleNameReferenceExpression: USimpleNameReferenceExpression
+            coroutineBuilderMethod: UCallExpression,
+            jobParameterOfMethod: USimpleNameReferenceExpression
         ): ReportSettings {
-            val psiType = simpleNameReferenceExpression.getExpressionType()
-            val psiClass = context.evaluator.getTypeClass(psiType)
-            val name = simpleNameReferenceExpression.sourcePsi?.text.orEmpty()
+            val psiTypeJobParameterOfMethod = jobParameterOfMethod.getExpressionType()
+            val psiClassJobParameterOfMethod =
+                context.evaluator.getTypeClass(psiTypeJobParameterOfMethod)
+            val parameterName = jobParameterOfMethod.sourcePsi?.text.orEmpty()
             val dependencies = context.evaluator.dependencies?.getAll()
-            val uContainingClass = simpleNameReferenceExpression.getContainingUClass()
+            val containingClassOfMethodInvocation = jobParameterOfMethod.getContainingUClass()
 
             return when {
                 isSupervisorCondition(
-                    name,
-                    uCallExpression,
+                    parameterName,
+                    coroutineBuilderMethod,
                     dependencies,
                     context,
-                    uContainingClass
+                    containingClassOfMethodInvocation
                 ) -> {
                     ReportSettings(
                         JOB_IN_BUILDER_ISSUE_BRIEF_DESCRIPTION,
                         createSupervisorJobFix(location)
                     )
                 }
-                isNonCancellableCondition(psiType, uCallExpression.uastParent) -> {
-                    val methodLocation = context.getLocation(uCallExpression.methodIdentifier)
+                isNonCancellableCondition(
+                    psiTypeJobParameterOfMethod,
+                    coroutineBuilderMethod.uastParent
+                ) -> {
+                    val methodLocation =
+                        context.getLocation(coroutineBuilderMethod.methodIdentifier)
                     ReportSettings(
                         JOB_IN_BUILDER_ISSUE_BRIEF_DESCRIPTION,
                         createNonCancellableFix(methodLocation)
                     )
                 }
-                isOtherCondition(context, uContainingClass) -> ReportSettings(
+                isOtherCondition(context, containingClassOfMethodInvocation) -> ReportSettings(
                     JOB_IN_BUILDER_ISSUE_BRIEF_DESCRIPTION,
                     null
                 )
@@ -155,7 +164,6 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
                         JOB_IN_BUILDER_ISSUE_BRIEF_DESCRIPTION,
                         null
                     )
-//                    throw Exception("Не достижима")
                 }
             }
         }
@@ -173,7 +181,6 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
             containingUClass = uContainingClass,
             expectedExtendClass = VIEW_MODEL
         )
-
 
         private fun isInvokeOnViewModelScope(uCallExpression: UCallExpression): Boolean =
             uCallExpression.receiver?.sourcePsi?.text == VIEW_MODEL_SCOPE &&
@@ -195,13 +202,13 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
                     isCoroutineBuilderInvokeInOtherCoroutineBuilder(uElement)
         }
 
-        private fun isCoroutineBuilderInvokeInOtherCoroutineBuilder(
+        private tailrec fun isCoroutineBuilderInvokeInOtherCoroutineBuilder(
             uElement: UElement?
         ): Boolean {
             return when {
                 uElement == null || uElement is UMethod -> false
                 uElement is UCallExpression
-                        && methodNames.any { it == uElement.methodName } -> true
+                        && applicableCoroutineBuilderMethodNames.any { it == uElement.methodName } -> true
                 else -> isCoroutineBuilderInvokeInOtherCoroutineBuilder(
                     uElement.uastParent
                 )

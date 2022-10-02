@@ -29,8 +29,8 @@ import ru.otus.homework.lintchecks.isExtendsOfClass
 
 private const val GLOBAL_SCOPE_USAGES_ISSUE_ID = "GlobalScopeUsage"
 private const val GLOBAL_SCOPE_USAGES_ISSUE_BRIEF_DESCRIPTION =
-    "BriefDescription - GlobalScopeUsage"
-private const val GLOBAL_SCOPE_USAGES_ISSUE_EXPLANATION = "Explanation - GlobalScopeUsage"
+    "BriefDescription - Don't use Global Scope"
+private const val GLOBAL_SCOPE_USAGES_ISSUE_EXPLANATION = "Explanation - Don't use Global Scope"
 private const val RECEIVER_TYPE = "kotlinx.coroutines.GlobalScope"
 
 @Suppress("UnstableApiUsage")
