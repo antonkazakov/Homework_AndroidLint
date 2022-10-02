@@ -1,6 +1,5 @@
 package ru.otus.homework.lintchecks.detectors
 
-import com.android.tools.lint.client.api.UElementHandler
 import com.android.tools.lint.detector.api.Category
 import com.android.tools.lint.detector.api.Detector
 import com.android.tools.lint.detector.api.Implementation
@@ -11,6 +10,7 @@ import com.android.tools.lint.detector.api.Location
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.android.tools.lint.model.LintModelLibrary
+import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiType
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UClass
@@ -51,35 +51,24 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
         )
     }
 
-    private val methodNames = listOf("launch", "async")
-
-    override fun getApplicableUastTypes(): List<Class<out UElement>>? {
-        return listOf(UCallExpression::class.java)
+    override fun getApplicableMethodNames(): List<String> {
+        return listOf("launch", "async")
     }
 
-    override fun createUastHandler(context: JavaContext): UElementHandler? {
-        return object : UElementHandler() {
-            override fun visitCallExpression(node: UCallExpression) {
-                val classTypeOfReceiver = context.evaluator.getTypeClass(node.receiverType)
-                val isInvokeMethodOnCoroutineScope = context
-                    .evaluator
-                    .inheritsFrom(
-                        classTypeOfReceiver,
-                        COROUTINE_SCOPE,
-                        false
+    override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
+        val classTypeOfReceiver = context.evaluator.getTypeClass(node.receiverType)
+        val isInvokeMethodOnCoroutineScope = context.evaluator.inheritsFrom(
+            classTypeOfReceiver,
+            COROUTINE_SCOPE,
+            false
+        )
+
+        if (isInvokeMethodOnCoroutineScope) {
+            node.valueArguments.forEach { uExpression ->
+                if (uExpression !is ULambdaExpression) {
+                    uExpression.accept(
+                        ParameterMethodVisitor(context, node, fix(), getApplicableMethodNames())
                     )
-
-                val methodName = node.methodIdentifier?.name
-                val isCorrectMethodName = methodNames.any { it == methodName }
-
-                if (isInvokeMethodOnCoroutineScope && isCorrectMethodName) {
-                    node.valueArguments.forEach { uExpression ->
-                        if (uExpression !is ULambdaExpression) {
-                            uExpression.accept(
-                                ParameterMethodVisitor(context, node, fix(), methodNames)
-                            )
-                        }
-                    }
                 }
             }
         }
