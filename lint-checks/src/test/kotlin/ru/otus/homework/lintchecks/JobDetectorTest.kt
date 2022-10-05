@@ -30,9 +30,9 @@ internal class JobDetectorTest {
                     """
                         package checks
 
-                        import kotlinx.coroutines.Job
+                        import kotlinx.coroutines.CoroutineScope
 
-                        object GlobalScope: Job {
+                        object GlobalScope: CoroutineScope {
                             fun launch(job: Job, block: () -> Unit) {
                             }
                         }
@@ -53,6 +53,14 @@ internal class JobDetectorTest {
                         package kotlinx.coroutines
 
                         class Job {
+                        }
+                    """.trimIndent()
+                ),
+                kotlin(
+                    """
+                        package kotlinx.coroutines
+
+                        class CoroutineScope {
                         }
                     """.trimIndent()
                 )

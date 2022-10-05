@@ -1,58 +1,93 @@
 package ru.otus.homework.lintchecks
 
-import com.android.tools.lint.client.api.UElementHandler
+import com.alexey.minay.checks.find
 import com.android.tools.lint.detector.api.*
-import org.jetbrains.uast.UElement
+import com.intellij.psi.PsiMethod
+import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UExpression
-import org.jetbrains.uast.USimpleNameReferenceExpression
+import org.jetbrains.uast.getContainingUClass
 
 @Suppress("UnstableApiUsage")
 class JobDetector : Detector(), Detector.UastScanner {
 
-    override fun getApplicableUastTypes(): List<Class<out UElement>> {
-        return listOf<Class<out UElement>>(UExpression::class.java)
-    }
-
     override fun getApplicableMethodNames(): List<String> {
-        return listOf("launch")
+        return listOf("launch", "asunch")
     }
 
-    override fun createUastHandler(context: JavaContext): UElementHandler {
-        return object : UElementHandler() {
+    override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
+        val receiver = context.evaluator.getTypeClass(node.receiverType)
 
-            override fun visitExpression(node: UExpression) {
-                val expType = node.getExpressionType()
-                val type = context.evaluator.getTypeClass(expType)
-                val isInherits = context.evaluator.inheritsFrom(type, "kotlinx.coroutines.Job")
+        val isCoroutineScope = receiver
+            ?.find(
+                iterator = { it.superClass },
+                predicate = { psiClass ->
+                    psiClass.name == "CoroutineScope" &&
+                            context.evaluator.getPackage(psiClass)?.qualifiedName == "kotlinx.coroutines"
+                }
+            ) != null
+
+        if (isCoroutineScope) {
+            node.valueArguments.forEach { arg ->
+                val param = context.evaluator.getTypeClass(arg.getExpressionType())
+                val isInherits =
+                    context.evaluator.inheritsFrom(param, "kotlinx.coroutines.Job", false)
                 if (isInherits) {
-                    val value = node.javaPsi
                     context.report(
                         issue = ISSUE,
                         scope = node,
                         location = context.getLocation(node),
-                        message = "asdffdas"
+                        message = BRIEF,
+                        quickfixData = createFix(context, arg)
                     )
                 }
             }
-
-//            override fun visitCallExpression(node: UCallExpression) {
-//                if (node.methodIdentifier?.name == "launch") {
-//                    val expType = node.valueArguments[0].getExpressionType()
-//                    val type = context.evaluator.getTypeClass(expType)
-//                    val isInherits = context.evaluator.inheritsFrom(type, "kotlinx.coroutines.Job")
-//                    val value = node.valueArguments[0].asCall()?.methodIdentifier
-//                    println()
-//                }
-//            }
-
         }
+
+    }
+
+    private fun createFix(
+        context: JavaContext,
+        node: UExpression
+    ): LintFix? {
+        val viewModelElement = node.getContainingUClass()?.javaPsi
+            ?.find(
+                iterator = { it.superClass },
+                predicate = { psiClass ->
+                    psiClass.name == "ViewModel" &&
+                            context.evaluator.getPackage(psiClass)?.qualifiedName == "androidx.lifecycle"
+                }
+            )
+
+        if (viewModelElement != null) {
+            return createViewModelScopeFix(context, node)
+        }
+
+        return null
+    }
+
+    private fun createViewModelScopeFix(
+        context: JavaContext,
+        node: UExpression
+    ): LintFix? {
+        val containViewModelArtifact = context.evaluator.dependencies?.getAll()?.any {
+            it.identifier.contains("androidx.lifecycle:lifecycle-viewmodel-kt")
+        }
+
+        if (containViewModelArtifact != true) return null
+
+        return fix()
+            .replace()
+            .range(context.getLocation(node))
+            .all()
+            .with("")
+            .build()
     }
 
     companion object {
 
         private const val BRIEF = "brief description"
         private const val EXPLANATION = "explanation"
-        private const val ID = "JobDetectorUsage"
+        private const val ID = "JobInBuilderUsage"
 
         val ISSUE = Issue.create(
             id = ID,

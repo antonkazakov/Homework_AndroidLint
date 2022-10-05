@@ -82,7 +82,6 @@ class GlobalScopeDetector : Detector(), Detector.UastScanner {
             .build()
     }
 
-
     private fun createFragmentScopeFix(
         context: JavaContext
     ): LintFix? {

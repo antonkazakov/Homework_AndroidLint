@@ -2,12 +2,7 @@ package ru.otus.homework.linthomework.jobinbuilderusage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 
 class JobInBuilderTestCase(
     private val job: Job
@@ -18,10 +13,6 @@ class JobInBuilderTestCase(
             delay(1000)
             println("Hello World")
         }
-    }
-
-    fun ca() {
-        viewModelScope.launch {  }
     }
 
     fun case2() {
