@@ -20,8 +20,12 @@ class JobInBuilderTestCase(
         }
     }
 
+    fun ca() {
+        viewModelScope.launch {  }
+    }
+
     fun case2() {
-        viewModelScope.launch(Job()) {
+        viewModelScope.launch {
             delay(1000)
             println("Hello World")
         }
