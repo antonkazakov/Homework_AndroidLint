@@ -6,12 +6,13 @@ import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UElement
 import org.jetbrains.uast.UExpression
 import org.jetbrains.uast.getContainingUClass
+import org.jetbrains.uast.kotlin.KotlinUBinaryExpression
 
 @Suppress("UnstableApiUsage")
 class JobDetector : Detector(), Detector.UastScanner {
 
     override fun getApplicableMethodNames(): List<String> {
-        return listOf("launch", "asunch")
+        return listOf("launch", "async")
     }
 
     override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
@@ -30,7 +31,14 @@ class JobDetector : Detector(), Detector.UastScanner {
             node.valueArguments.forEach { arg ->
                 val param = context.evaluator.getTypeClass(arg.getExpressionType())
                 val isInherits =
-                    context.evaluator.inheritsFrom(param, "kotlinx.coroutines.Job", false)
+                    context.evaluator.inheritsFrom(param, "kotlinx.coroutines.Job", false) ||
+                            (arg is KotlinUBinaryExpression &&
+                                    context.evaluator.inheritsFrom(
+                                        param,
+                                        "kotlin.coroutines.CoroutineContext",
+                                        false
+                                    ))
+
                 if (isInherits) {
                     context.report(
                         issue = ISSUE,
@@ -65,6 +73,25 @@ class JobDetector : Detector(), Detector.UastScanner {
 
         if (viewModelElement != null && isSupervisorJob) {
             return createSupervisorJobFix(context, node)
+        }
+
+        if (node is KotlinUBinaryExpression &&
+            context.evaluator.inheritsFrom(
+                param,
+                "kotlin.coroutines.CoroutineContext",
+                false
+            )
+        ) {
+            node.operands.forEach { expression ->
+                if (context.evaluator.inheritsFrom(
+                        context.evaluator.getTypeClass(expression.getExpressionType()),
+                        "kotlinx.coroutines.CompletableJob",
+                        false
+                    )
+                ) {
+                    return createSupervisorJobFix(context, expression)
+                }
+            }
         }
 
         val isNonCancelableJob = context.evaluator

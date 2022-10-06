@@ -18,7 +18,7 @@ internal class JobDetectorTest {
 
                         class TestClass {
                             fun onCreate() {
-                                GlobalScope.launch(SupervisorJob()) {
+                                GlobalScope.launch(SupervisorJob() + SupervisorJob()) {
                                     delay(1000)
                                     println("Hello World")
                                 }
@@ -53,6 +53,7 @@ internal class JobDetectorTest {
                         package kotlinx.coroutines
 
                         class Job {
+                            operator fun plus(job: Job): Job = job
                         }
                     """.trimIndent()
                 ),
