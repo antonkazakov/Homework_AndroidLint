@@ -34,8 +34,8 @@ class JobDetector : Detector(), Detector.UastScanner {
                 if (isInherits) {
                     context.report(
                         issue = ISSUE,
-                        scope = node,
-                        location = context.getLocation(node),
+                        scope = arg,
+                        location = context.getLocation(arg),
                         message = BRIEF,
                         quickfixData = createFix(context, arg)
                     )
@@ -58,14 +58,25 @@ class JobDetector : Detector(), Detector.UastScanner {
                 }
             )
 
-        if (viewModelElement != null) {
-            return createViewModelScopeFix(context, node)
+        val param = context.evaluator.getTypeClass(node.getExpressionType())
+        val isSupervisorJob = context.evaluator
+            .inheritsFrom(param, "kotlinx.coroutines.CompletableJob", false)
+
+        if (viewModelElement != null && isSupervisorJob) {
+            return createSupervisorJobFix(context, node)
+        }
+
+        val isNonCancelableJob = context.evaluator
+            .inheritsFrom(param, "kotlinx.coroutines.NonCancellable", false)
+
+        if (isNonCancelableJob) {
+            return createNonCancelableJobFix(context, node)
         }
 
         return null
     }
 
-    private fun createViewModelScopeFix(
+    private fun createSupervisorJobFix(
         context: JavaContext,
         node: UExpression
     ): LintFix? {
@@ -80,6 +91,19 @@ class JobDetector : Detector(), Detector.UastScanner {
             .range(context.getLocation(node))
             .all()
             .with("")
+            .build()
+    }
+
+    private fun createNonCancelableJobFix(
+        context: JavaContext,
+        node: UExpression
+    ): LintFix {
+        return fix()
+            .replace()
+            .text("launch")
+            .with("withContext")
+            .shortenNames()
+            .reformat(true)
             .build()
     }
 
