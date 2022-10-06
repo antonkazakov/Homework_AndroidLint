@@ -144,7 +144,6 @@ class JobDetector : Detector(), Detector.UastScanner {
     }
 
     companion object {
-
         private const val BRIEF = "brief description"
         private const val EXPLANATION = "explanation"
         private const val ID = "JobInBuilderUsage"
