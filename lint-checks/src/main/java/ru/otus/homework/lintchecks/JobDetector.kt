@@ -12,45 +12,37 @@ import org.jetbrains.uast.kotlin.KotlinUBinaryExpression
 class JobDetector : Detector(), Detector.UastScanner {
 
     override fun getApplicableMethodNames(): List<String> {
-        return listOf("launch", "async")
+        return listOf(LAUNCH, ASYNC)
     }
 
     override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
         val receiver = context.evaluator.getTypeClass(node.receiverType)
 
-        val isCoroutineScope = receiver
+        receiver
             ?.find(
                 iterator = { it.superClass },
                 predicate = { psiClass ->
-                    psiClass.name == "CoroutineScope" &&
-                            context.evaluator.getPackage(psiClass)?.qualifiedName == "kotlinx.coroutines"
+                    psiClass.name == COROUTINE_SCOPE &&
+                            context.evaluator.getPackage(psiClass)?.qualifiedName == KOTLINX_COROUTINE
                 }
-            ) != null
+            ) ?: return
 
-        if (isCoroutineScope) {
-            node.valueArguments.forEach { arg ->
-                val param = context.evaluator.getTypeClass(arg.getExpressionType())
-                val isInherits =
-                    context.evaluator.inheritsFrom(param, "kotlinx.coroutines.Job", false) ||
-                            (arg is KotlinUBinaryExpression &&
-                                    context.evaluator.inheritsFrom(
-                                        param,
-                                        "kotlin.coroutines.CoroutineContext",
-                                        false
-                                    ))
+        node.valueArguments.forEach { arg ->
+            val param = context.evaluator.getTypeClass(arg.getExpressionType())
+            val isContainJob = context.evaluator.inheritsFrom(param, JOB, false) ||
+                    (arg is KotlinUBinaryExpression &&
+                            context.evaluator.inheritsFrom(param, COROUTINE_CONTEXT, false))
 
-                if (isInherits) {
-                    context.report(
-                        issue = ISSUE,
-                        scope = node,
-                        location = context.getLocation(arg),
-                        message = BRIEF,
-                        quickfixData = createFix(context, arg, node)
-                    )
-                }
+            if (isContainJob) {
+                context.report(
+                    issue = ISSUE,
+                    scope = node,
+                    location = context.getLocation(arg),
+                    message = BRIEF,
+                    quickfixData = createFix(context, arg, node)
+                )
             }
         }
-
     }
 
     private fun createFix(
@@ -69,33 +61,34 @@ class JobDetector : Detector(), Detector.UastScanner {
 
         val param = context.evaluator.getTypeClass(node.getExpressionType())
         val isSupervisorJob = context.evaluator
-            .inheritsFrom(param, "kotlinx.coroutines.CompletableJob", false)
+            .inheritsFrom(param, SUPERVISOR_JOB, false)
 
         if (viewModelElement != null && isSupervisorJob) {
             return createSupervisorJobFix(context, node)
         }
 
-        if (node is KotlinUBinaryExpression &&
-            context.evaluator.inheritsFrom(
-                param,
-                "kotlin.coroutines.CoroutineContext",
-                false
-            )
-        ) {
-            node.operands.forEach { expression ->
-                if (context.evaluator.inheritsFrom(
-                        context.evaluator.getTypeClass(expression.getExpressionType()),
-                        "kotlinx.coroutines.CompletableJob",
-                        false
-                    )
-                ) {
+        val isCoroutineContextWithOperator = node is KotlinUBinaryExpression &&
+                context.evaluator.inheritsFrom(
+                    param,
+                    COROUTINE_CONTEXT,
+                    false
+                )
+
+        if (isCoroutineContextWithOperator) {
+            (node as KotlinUBinaryExpression).operands.forEach { expression ->
+                val isSupervisorJobExpr = context.evaluator.inheritsFrom(
+                    context.evaluator.getTypeClass(expression.getExpressionType()),
+                    SUPERVISOR_JOB,
+                    false
+                )
+                if (isSupervisorJobExpr) {
                     return createSupervisorJobFix(context, expression)
                 }
             }
         }
 
         val isNonCancelableJob = context.evaluator
-            .inheritsFrom(param, "kotlinx.coroutines.NonCancellable", false)
+            .inheritsFrom(param, NON_CANCELABLE, false)
 
         if (isNonCancelableJob) {
             return createNonCancelableJobFix(context, parentNode)
@@ -130,7 +123,7 @@ class JobDetector : Detector(), Detector.UastScanner {
             return fix()
                 .replace()
                 .range(context.getLocation(node))
-                .text("launch")
+                .text(LAUNCH)
                 .with("withContext")
                 .build()
         }
@@ -155,6 +148,14 @@ class JobDetector : Detector(), Detector.UastScanner {
         private const val BRIEF = "brief description"
         private const val EXPLANATION = "explanation"
         private const val ID = "JobInBuilderUsage"
+        private const val LAUNCH = "launch"
+        private const val ASYNC = "async"
+        private const val KOTLINX_COROUTINE = "kotlinx.coroutines"
+        private const val COROUTINE_SCOPE = "CoroutineScope"
+        private const val NON_CANCELABLE = "kotlinx.coroutines.NonCancellable"
+        private const val SUPERVISOR_JOB = "kotlinx.coroutines.CompletableJob"
+        private const val COROUTINE_CONTEXT = "kotlin.coroutines.CoroutineContext"
+        private const val JOB = "kotlinx.coroutines.Job"
 
         val ISSUE = Issue.create(
             id = ID,
