@@ -1,9 +1,9 @@
 package ru.otus.homework.lintchecks
 
-import com.alexey.minay.checks.find
 import com.android.tools.lint.detector.api.*
 import com.intellij.psi.PsiMethod
 import org.jetbrains.uast.UCallExpression
+import org.jetbrains.uast.UElement
 import org.jetbrains.uast.UExpression
 import org.jetbrains.uast.getContainingUClass
 
@@ -34,10 +34,10 @@ class JobDetector : Detector(), Detector.UastScanner {
                 if (isInherits) {
                     context.report(
                         issue = ISSUE,
-                        scope = arg,
+                        scope = node,
                         location = context.getLocation(arg),
                         message = BRIEF,
-                        quickfixData = createFix(context, arg)
+                        quickfixData = createFix(context, arg, node)
                     )
                 }
             }
@@ -47,7 +47,8 @@ class JobDetector : Detector(), Detector.UastScanner {
 
     private fun createFix(
         context: JavaContext,
-        node: UExpression
+        node: UExpression,
+        parentNode: UExpression
     ): LintFix? {
         val viewModelElement = node.getContainingUClass()?.javaPsi
             ?.find(
@@ -70,7 +71,7 @@ class JobDetector : Detector(), Detector.UastScanner {
             .inheritsFrom(param, "kotlinx.coroutines.NonCancellable", false)
 
         if (isNonCancelableJob) {
-            return createNonCancelableJobFix(context, node)
+            return createNonCancelableJobFix(context, parentNode)
         }
 
         return null
@@ -97,14 +98,29 @@ class JobDetector : Detector(), Detector.UastScanner {
     private fun createNonCancelableJobFix(
         context: JavaContext,
         node: UExpression
-    ): LintFix {
-        return fix()
-            .replace()
-            .text("launch")
-            .with("withContext")
-            .shortenNames()
-            .reformat(true)
-            .build()
+    ): LintFix? {
+        if (isInAnotherCoroutine(node)) {
+            return fix()
+                .replace()
+                .range(context.getLocation(node))
+                .text("launch")
+                .with("withContext")
+                .build()
+        }
+
+        return null
+    }
+
+    private fun isInAnotherCoroutine(node: UElement?): Boolean {
+        return when (val parent = node?.uastParent) {
+            is UCallExpression -> getApplicableMethodNames().any { methodName ->
+                methodName == parent.methodName
+            }
+            null -> false
+            else -> {
+                return isInAnotherCoroutine(parent)
+            }
+        }
     }
 
     companion object {

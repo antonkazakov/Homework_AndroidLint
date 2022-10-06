@@ -92,7 +92,7 @@ internal class JobDetectorTest {
 //                        class TestClass {
 //                            fun onCreate() {
 //                                GlobalScope.launch {
-//                                    launch(NonCancellable) {
+//                                    launch(NonCancellable()) {
 //                                        delay(1000)
 //                                        println("Hello World")
 //                                    }
@@ -106,20 +106,19 @@ internal class JobDetectorTest {
 //                        package checks
 //
 //                        import kotlinx.coroutines.CoroutineScope
+//                        import kotlinx.coroutines.NonCancelable
 //
 //                        object GlobalScope: CoroutineScope {
-//                            fun launch(job: Job, block: () -> Unit) {
+//                            override fun launch(job: Job, block: CoroutineScope.() -> Unit) {
 //                            }
 //                        }
 //                    """.trimIndent()
 //                ),
 //                kotlin(
 //                    """
-//                        package checks
+//                        package kotlinx.coroutines
 //
-//                        import kotlinx.coroutines.Job
-//
-//                        class SupervisorJob: Job() {
+//                        class NonCancelable: Job() {
 //                        }
 //                    """.trimIndent()
 //                ),
@@ -136,6 +135,8 @@ internal class JobDetectorTest {
 //                        package kotlinx.coroutines
 //
 //                        class CoroutineScope {
+//                             fun launch(job: Job, block: CoroutineScope.() -> Unit) {
+//                             }
 //                        }
 //                    """.trimIndent()
 //                )

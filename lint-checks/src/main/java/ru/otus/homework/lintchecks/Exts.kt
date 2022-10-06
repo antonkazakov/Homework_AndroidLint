@@ -1,4 +1,4 @@
-package com.alexey.minay.checks
+package ru.otus.homework.lintchecks
 
 fun <T>T.find(iterator: (T) -> T?, predicate: (T) -> Boolean): T? {
     var condition = predicate(this)

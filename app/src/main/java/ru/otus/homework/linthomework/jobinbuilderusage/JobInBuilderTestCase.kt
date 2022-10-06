@@ -15,6 +15,13 @@ class JobInBuilderTestCase(
         }
     }
 
+    fun case6() {
+        viewModelScope.launch(SupervisorJob()) {
+            delay(1000)
+            println("Hello World")
+        }
+    }
+
     fun case2() {
         viewModelScope.launch {
             delay(1000)
@@ -37,7 +44,7 @@ class JobInBuilderTestCase(
     }
 
     fun case5() {
-        viewModelScope.launch {
+        viewModelScope.launch(NonCancellable) {
             launch(NonCancellable) {
                 delay(1000)
                 println("Hello World")

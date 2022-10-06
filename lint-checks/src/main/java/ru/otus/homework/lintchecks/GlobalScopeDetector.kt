@@ -1,6 +1,5 @@
 package ru.otus.homework.lintchecks
 
-import com.alexey.minay.checks.find
 import com.android.tools.lint.client.api.UElementHandler
 import com.android.tools.lint.detector.api.*
 import org.jetbrains.uast.UElement
