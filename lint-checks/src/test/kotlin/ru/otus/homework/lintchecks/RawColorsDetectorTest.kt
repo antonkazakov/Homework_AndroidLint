@@ -8,12 +8,27 @@ import org.junit.Test
 internal class RawColorsDetectorTest {
 
     @Test
-    fun `first`() {
+    fun `should find 2 errors`() {
         lint()
             .allowMissingSdk()
             .detector(RawColorsDetector())
             .issues(RawColorsDetector.ISSUE)
             .files(
+                xml(
+                    "res/values/colors.xml",
+                    """
+                    <?xml version="1.0" encoding="utf-8"?>
+                    <resources>
+                        <color name="purple_200">#FFBB86FC</color>
+                        <color name="purple_500">#FF6200EE</color>
+                        <color name="purple_700">#FF3700B3</color>
+                        <color name="teal_200">#FF03DAC5</color>
+                        <color name="teal_700">#FF018786</color>
+                        <color name="black">#FF000000</color>
+                        <color name="white">#FFFFFFFF</color>
+                    </resources>
+                """.trimIndent()
+                ).indented(),
                 xml(
                     "res/layout/incorrect_color_usages_layout.xml",
                     """
@@ -88,21 +103,6 @@ internal class RawColorsDetectorTest {
                             
                             </FrameLayout>
                     """.trimIndent()
-                ).indented(),
-                xml(
-                    "res/values/colors.xml",
-                    """
-                    <?xml version="1.0" encoding="utf-8"?>
-                    <resources>
-                        <color name="purple_200">#FFBB86FC</color>
-                        <color name="purple_500">#FF6200EE</color>
-                        <color name="purple_700">#FF3700B3</color>
-                        <color name="teal_200">#FF03DAC5</color>
-                        <color name="teal_700">#FF018786</color>
-                        <color name="black">#FF000000</color>
-                        <color name="white">#FFFFFFFF</color>
-                    </resources>
-                """.trimIndent()
                 ).indented()
             )
             .run()
@@ -122,7 +122,7 @@ internal class RawColorsDetectorTest {
                                     android:layout_width="80dp"
                                     android:layout_height="80dp"
                                     android:layout_marginTop="32dp"
-                                    android:background="#FF3700B3"
+                                    android:background="@color/purple_700"
                                     app:layout_constraintEnd_toEndOf="parent"
                                     app:layout_constraintStart_toStartOf="parent"
                                     app:layout_constraintTop_toTopOf="parent" />
@@ -182,6 +182,16 @@ internal class RawColorsDetectorTest {
                             </FrameLayout>
                     """.trimIndent()
                 ).indented()
+            ).expect(
+                """
+                    res/layout/incorrect_color_usages_layout.xml:13: Error: brief description [RawColorUsage]
+                                android:background="#FF3700B3"
+                                                    ~~~~~~~~~
+                    res/layout/incorrect_color_usages_layout.xml:23: Error: brief description [RawColorUsage]
+                                android:background="#00bcd4"
+                                                    ~~~~~~~
+                    2 errors, 0 warnings
+                """.trimIndent()
             )
     }
 

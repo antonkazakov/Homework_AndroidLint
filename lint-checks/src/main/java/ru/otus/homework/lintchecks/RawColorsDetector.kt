@@ -80,7 +80,7 @@ class RawColorsDetector : ResourceXmlDetector() {
                 .replace()
                 .range(location)
                 .all()
-                .with(value)
+                .with("@color/$value")
                 .build()
         }
         return fix().alternatives(*fixes.toTypedArray())
