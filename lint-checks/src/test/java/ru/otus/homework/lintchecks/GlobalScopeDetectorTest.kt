@@ -65,11 +65,11 @@ src/ru/otus/homework/linthomework/globalscopeusage/GlobalScopeTestCase.kt:17: Wa
                         class GlobalScopeTestCase(private val scope: CoroutineScope) : ViewModel() {
                         
                             fun case1() {
-                                viewmodelScope.launch {
+                                viewModelScope.launch {
                                     delay(1000)
                                     println("Hello World")
                                 }
-                                viewmodelScope.actor<String> {
+                                viewModelScope.actor<String> {
                                     delay(1000)
                                     println("Hello World")
                                 }

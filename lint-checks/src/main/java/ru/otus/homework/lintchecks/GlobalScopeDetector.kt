@@ -2,7 +2,6 @@ package ru.otus.homework.lintchecks
 
 import com.android.tools.lint.client.api.UElementHandler
 import com.android.tools.lint.detector.api.*
-import com.intellij.psi.PsiClass
 import org.jetbrains.uast.*
 
 @Suppress("UnstableApiUsage")
@@ -40,11 +39,6 @@ class GlobalScopeDetector : Detector(), Detector.UastScanner {
         return null
     }
 
-    private fun hasArtifact(context: JavaContext, artifactName: String): Boolean =
-        context.evaluator.dependencies?.getAll()?.any {
-            it.identifier.contains(artifactName)
-        } == true
-
     private fun replaceScope(replace: String): LintFix =
         fix()
             .replace()
@@ -78,14 +72,4 @@ class GlobalScopeDetector : Detector(), Detector.UastScanner {
             implementation = Implementation(GlobalScopeDetector::class.java, Scope.JAVA_FILE_SCOPE)
         )
     }
-}
-
-fun PsiClass.hasParent(context: JavaContext, parentName: String): Boolean {
-    val className = parentName.substringAfterLast(".")
-    val classPackage = parentName.substringBeforeLast(".")
-    var psiClass = this
-    while (psiClass.name != className) {
-        psiClass = psiClass.superClass ?: return false
-    }
-    return context.evaluator.getPackage(psiClass)?.qualifiedName == classPackage
 }
