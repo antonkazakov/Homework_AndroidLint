@@ -61,7 +61,6 @@ internal class JobInBuilderDetectorTest {
             """.trimIndent()
             ), kotlinxCoroutines, kotlinCoroutines, androidxLifecycle
         )
-
             .testModes(TestMode.DEFAULT)
             .run()
             .expect("""
@@ -83,5 +82,4 @@ internal class JobInBuilderDetectorTest {
                 0 errors, 5 warnings
             """.trimIndent())
     }
-
 }

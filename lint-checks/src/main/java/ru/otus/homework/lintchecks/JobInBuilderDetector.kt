@@ -67,7 +67,6 @@ class JobInBuilderDetector : Detector(), Detector.UastScanner {
             val isContainsNonCancellable =
                 context.evaluator.inheritsFrom(argumentPsiClass, NON_CANCELABLE, false)
             if (isContainsNonCancellable) {
-
                 if (parentMethodLocation != null && parentScopeLocation != null) {
                     lintReport(context,
                         argument,

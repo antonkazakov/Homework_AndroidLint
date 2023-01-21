@@ -11,6 +11,7 @@ class HomeworkIssueRegistry : IssueRegistry() {
         get() = listOf(
             GlobalScopeDetector.ISSUE,
             JobInBuilderDetector.ISSUE,
+            RawColorUsageDetector.ISSUE
         )
     override val api: Int
         get() = CURRENT_API
