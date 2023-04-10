@@ -2,11 +2,13 @@
 
 package ru.otus.homework.linthomework.globalscopeusage
 
+import android.annotation.SuppressLint
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.actor
 import kotlinx.coroutines.delay
@@ -14,6 +16,8 @@ import kotlinx.coroutines.launch
 
 class GlobalScopeTestCase(private val scope: CoroutineScope) : ViewModel() {
 
+    @OptIn(ObsoleteCoroutinesApi::class)
+    @SuppressLint("GlobalScopeUsage")
     fun case1() {
         GlobalScope.launch {
             delay(1000)
@@ -25,6 +29,7 @@ class GlobalScopeTestCase(private val scope: CoroutineScope) : ViewModel() {
         }
     }
 
+    @SuppressLint("GlobalScopeUsage")
     fun case2() {
         viewModelScope.launch {
             val deferred = GlobalScope.async {

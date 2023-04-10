@@ -1,6 +1,7 @@
 plugins {
     id 'java-library'
     id 'org.jetbrains.kotlin.jvm'
+    id 'com.android.lint'
 }
 
 java {
@@ -10,9 +11,16 @@ java {
 
 dependencies {
     def lintVersion = "30.2.0"
+    def jUnitVersion = "4.13.2"
     compileOnly "com.android.tools.lint:lint-api:$lintVersion"
     compileOnly "com.android.tools.lint:lint-checks:$lintVersion"
+
+    testImplementation "com.android.tools.lint:lint-api:$lintVersion"
+    testImplementation "com.android.tools.lint:lint-checks:$lintVersion"
     testImplementation "com.android.tools.lint:lint-tests:$lintVersion"
+
+    testImplementation "com.android.tools.lint:lint-tests:$lintVersion"
+    testImplementation "junit:junit:$jUnitVersion"
 }
 
 jar {
