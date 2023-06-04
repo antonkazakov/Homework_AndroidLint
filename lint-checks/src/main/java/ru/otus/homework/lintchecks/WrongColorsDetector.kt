@@ -1,67 +1,101 @@
 package ru.otus.homework.lintchecks
 
+import com.android.tools.lint.detector.api.*
+import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import org.w3c.dom.Attr
 import org.w3c.dom.Element
-import com.android.resources.ResourceFolderType
-import com.android.tools.lint.detector.api.*
-import com.intellij.psi.PsiMethod
-import org.jetbrains.uast.UCallExpression
+import ru.otus.homework.lintchecks.model.ColorModel
+import ru.otus.homework.lintchecks.model.ColorUsage
 
 @Suppress("UnstableApiUsage")
 class WrongColorsDetector : ResourceXmlDetector() {
 
-    override fun appliesTo(folderType: ResourceFolderType): Boolean {
+    private val paletteColors = ArrayList<ColorModel>()
+    private val allColorUsages = ArrayList<ColorUsage>()
 
-        return folderType == ResourceFolderType.DRAWABLE || folderType == ResourceFolderType.LAYOUT || folderType == ResourceFolderType.VALUES
-
+    override fun getApplicableAttributes(): Collection<String> {
+        return listOf("color", "tint", "fillColor", "background", "backgroundTint")
     }
 
-    override fun visitAttribute(context: XmlContext, attribute: Attr) {
-        super.visitAttribute(context, attribute)
-    }
-
-    private val designColors = ArrayList<Pair<Location, String>>()
-    private val allProjectColors = HashMap<String, ArrayList<String>>()
-
-    override fun visitElement(context: XmlContext, element: Element) {
-        if (context.file.path.contains("colors.xml")){
-
-            val color = element.firstChild.nodeValue.lowercase()
-            val name = element.attributes.item(0)?.nodeValue?.lowercase() ?: return
-
-        }
-
+    override fun getApplicableElements(): Collection<String> {
+        return listOf("color")
     }
 
     override fun beforeCheckRootProject(context: Context) {
-        designColors.clear()
-        allProjectColors.clear()
+        paletteColors.clear()
+        allColorUsages.clear()
     }
 
-    private fun reportUsage(context: JavaContext, node: UCallExpression, method: PsiMethod) {
-        context.report(
-            issue = ISSUE,
-            scope = node,
-            location = context.getLocation(node),
-            message = "Using Job/SupervisorJob in a builder makes no sense",
-            //quickfixData = fix
-        )
+    override fun visitAttribute(context: XmlContext, attribute: Attr) {
+        val value = attribute.value.lowercase()
+        if (value.startsWith("#") || value.contains("color/")) {
+            val location = context.getValueLocation(attribute)
+            val data = ColorUsage(value, attribute, location)
+            allColorUsages.add(data)
+        }
+    }
+
+    override fun visitElement(context: XmlContext, element: Element) {
+        if (context.file.path.contains("/res/values/colors.xml")) {
+            paletteColors.add(
+                ColorModel(
+                    colorName = element.attributes.item(0).nodeValue.toLowerCaseAsciiOnly(),
+                    colorValue = element.firstChild.nodeValue.toLowerCaseAsciiOnly()
+                )
+            )
+        }
+    }
+
+    override fun afterCheckRootProject(context: Context) {
+
+        allColorUsages.forEach { colorUsages ->
+
+            val colorsReferences = paletteColors.map {
+                    model -> "@color/${model.colorName}"
+            }
+            val rawColorsUsages = paletteColors.find {
+                    model ->  colorUsages.value == model.colorValue
+            }
+
+            if(rawColorsUsages != null){
+                context.report(
+                    issue = ISSUE,
+                    location = colorUsages.location,
+                    message = "Colors outside design system should not be used",
+                    quickfixData = createFix("@color/${rawColorsUsages.colorName}", colorUsages.location)
+                )
+            }
+
+            if(colorsReferences.find { it == colorUsages.value } == null){
+                context.report(
+                    issue = ISSUE,
+                    location = colorUsages.location,
+                    message = "Colors outside design system should not be used",
+                    quickfixData = null
+                )
+            }
+        }
+
+        paletteColors.clear()
+        allColorUsages.clear()
+    }
+
+    private fun createFix(replaceTo: String, location: Location): LintFix {
+        return fix().replace().range(location).all().with(replaceTo).build()
     }
 
     companion object {
 
         private val IMPLEMENTATION = Implementation(
-            UselessJobDetector::class.java,
-            Scope.JAVA_FILE_SCOPE
+            WrongColorsDetector::class.java,
+            Scope.RESOURCE_FILE_SCOPE
         )
 
         val ISSUE: Issue = Issue
             .create(
-                id = "WrongColorsUsage",
-                briefDescription = "The Job in a coroutine builder should not be used",
-                explanation = """
-                Using Job/SupervisorJob in a builder makes no sense.
-            """.trimIndent(),
+                id = "WrongColorUsage",
+                briefDescription = "Colors outside design system should not be used",
+                explanation = "Colors outside design system should not be used",
                 category = Category.CORRECTNESS,
                 priority = 10,
                 severity = Severity.ERROR,

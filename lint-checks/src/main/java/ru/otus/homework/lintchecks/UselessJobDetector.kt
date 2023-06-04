@@ -11,6 +11,7 @@ import com.android.tools.lint.detector.api.Severity
 import com.intellij.psi.PsiMethod
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.USimpleNameReferenceExpression
+import org.jetbrains.uast.getContainingUClass
 
 @Suppress("UnstableApiUsage")
 class UselessJobDetector: Detector(), Detector.UastScanner {
@@ -18,7 +19,6 @@ class UselessJobDetector: Detector(), Detector.UastScanner {
     override fun getApplicableMethodNames(): List<String> = listOf("launch", "async")
 
     override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
-        //super.visitMethodCall(context, node, method)
 
         node.valueArguments.forEach { argument ->
 
@@ -29,9 +29,6 @@ class UselessJobDetector: Detector(), Detector.UastScanner {
             )
 
             if(jobInBuilder){
-
-
-
                 reportUsage(context, node, method)
             }
 
@@ -40,13 +37,45 @@ class UselessJobDetector: Detector(), Detector.UastScanner {
     }
 
     private fun reportUsage(context: JavaContext, node: UCallExpression, method: PsiMethod) {
+
+        val evaluator = context.evaluator
+
+        val isNonCancelableJob = evaluator.inheritsFrom(
+            evaluator.getTypeClass(node.getExpressionType()),
+            "kotlinx.coroutines.NonCancellable",
+            false
+        )
+
+        val isSupervisorJob = evaluator.inheritsFrom(
+            evaluator.getTypeClass(node.getExpressionType()),
+            "kotlinx.coroutines.Job",
+            false
+        )
+
+        val calledInClas = node.getContainingUClass()?.javaPsi
+        val isInViewModel = calledInClas?.qualifiedName == "androidx.lifecycle.ViewModel"
+
+        val fix = when{
+            isNonCancelableJob -> supervisorJobFix(context, node)
+            isSupervisorJob && isInViewModel -> nonCancellableJobFix(context, node)
+            else -> null
+        }
+
         context.report(
             issue = ISSUE,
             scope = node,
             location = context.getLocation(node),
             message = "Using Job/SupervisorJob in a builder makes no sense",
-            //quickfixData = fix
+            quickfixData = fix
         )
+    }
+
+    private fun supervisorJobFix(context: JavaContext, node: UCallExpression): LintFix {
+        return fix().replace().range(context.getLocation(node)).text(node.methodName).with("withContext").build()
+    }
+
+    private fun nonCancellableJobFix(context: JavaContext, node: UCallExpression): LintFix {
+        return fix().replace().range(context.getLocation(node)).all().with("").build()
     }
 
     companion object {
