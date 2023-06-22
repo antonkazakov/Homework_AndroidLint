@@ -35,9 +35,11 @@ class JobInBuilderTestCase(
     }
 
     fun case4() {
-        viewModelScope.launch(NonCancellable) {
-            delay(1000)
-            println("Hello World")
+        viewModelScope.launch {
+            viewModelScope.launch(NonCancellable) {
+                delay(1000)
+                println("Hello World")
+            }
         }
     }
 }
