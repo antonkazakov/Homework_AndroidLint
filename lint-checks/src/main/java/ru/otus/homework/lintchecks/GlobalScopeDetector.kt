@@ -17,6 +17,8 @@ import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 import org.jetbrains.uast.UElement
 import org.jetbrains.uast.USimpleNameReferenceExpression
 
+private const val s = "o"
+
 private const val ID = "GlobalScopeUsage"
 private const val BRIEF_DESCRIPTION =
     "Замените GlobalScope на другой CoroutineScope"
@@ -26,9 +28,20 @@ private const val EXPLANATION =
 
 private const val PRIORITY = 6
 
-private const val CLASS = "kotlinx.coroutines.GlobalScope"
+private const val CLASS_GLOBAL_SCOPE = "kotlinx.coroutines.GlobalScope"
+private const val CLASS_VIEW_MODEL = "androidx.lifecycle.ViewModel"
+private const val CLASS_FRAGMENT = "androidx.fragment.app.Fragment"
 
-class GlobalScopeDetector: Detector(), Detector.UastScanner {
+private const val NODE_GLOBAL_SCOPE = "GlobalScope"
+
+private const val ARTIFACT_VIEW_MODEL = "androidx.lifecycle:lifecycle-viewmodel-ktx"
+private const val ARTIFACT_FRAGMENT = "androidx.lifecycle:lifecycle-runtime-ktx"
+
+private const val REPLACEMENT_LIFECYCLE_SCOPE = "lifecycleScope"
+private const val REPLACEMENT_VIEW_MODEL_SCOPE = "viewModelScope"
+private const val REPLACEMENT_COROUTINE_SCOPE = "CoroutineScope(Dispatchers.Default)"
+
+class GlobalScopeDetector : Detector(), Detector.UastScanner {
 
     companion object {
 
@@ -49,7 +62,7 @@ class GlobalScopeDetector: Detector(), Detector.UastScanner {
 
     override fun createUastHandler(context: JavaContext) = object : UElementHandler() {
         override fun visitSimpleNameReferenceExpression(node: USimpleNameReferenceExpression) {
-            if (!(node.identifier == "GlobalScope" && node.getExpressionType()?.canonicalText == CLASS)) {
+            if (!(node.identifier == NODE_GLOBAL_SCOPE && node.getExpressionType()?.canonicalText == CLASS_GLOBAL_SCOPE)) {
                 return
             }
 
@@ -64,8 +77,8 @@ class GlobalScopeDetector: Detector(), Detector.UastScanner {
                 hasParentClassAndArtifact(
                     context,
                     ktClass?.toLightClass()?.superTypes ?: emptyArray(),
-                    "androidx.lifecycle.ViewModel",
-                    "androidx.lifecycle:lifecycle-viewmodel-ktx"
+                    CLASS_VIEW_MODEL,
+                    ARTIFACT_VIEW_MODEL
                 )
             ) {
                 superClassType = SuperClassType.VIEW_MODEL
@@ -73,8 +86,8 @@ class GlobalScopeDetector: Detector(), Detector.UastScanner {
                 hasParentClassAndArtifact(
                     context,
                     ktClass?.toLightClass()?.superTypes ?: emptyArray(),
-                    "androidx.fragment.app.Fragment",
-                    "androidx.lifecycle:lifecycle-runtime-ktx"
+                    CLASS_FRAGMENT,
+                    ARTIFACT_FRAGMENT
                 )
             ) {
                 superClassType = SuperClassType.FRAGMENT
@@ -90,19 +103,11 @@ class GlobalScopeDetector: Detector(), Detector.UastScanner {
         }
     }
 
-    private fun hasParentClassAndArtifact(context: JavaContext, superTypes: Array<out PsiType>, canonicalClassName: String, artifact: String): Boolean {
-        superTypes.forEach {
-            val hasDependency = context.evaluator.dependencies?.getAll()?.any { it.identifier.lowercase().contains(artifact) } == true
-            return if (it.canonicalText == canonicalClassName && hasDependency) {
-                true
-            } else {
-                hasParentClassAndArtifact(context, it.superTypes ?: emptyArray(), canonicalClassName, artifact)
-            }
-        }
-        return false
-    }
-
-    private fun createFix(className: String?, superClassType: SuperClassType, location: Location): LintFix {
+    private fun createFix(
+        className: String?,
+        superClassType: SuperClassType,
+        location: Location
+    ): LintFix {
         if (className == null) return replaceWithOtherScope(superClassType)
         return fix().alternatives(
             replaceWithOtherScope(superClassType),
@@ -111,14 +116,14 @@ class GlobalScopeDetector: Detector(), Detector.UastScanner {
     }
 
     private fun getReplacement(superClassType: SuperClassType) = when (superClassType) {
-        SuperClassType.FRAGMENT -> "lifecycleScope"
-        SuperClassType.VIEW_MODEL -> "viewModelScope"
-        else -> "CoroutineScope(Dispatchers.Default)"
+        SuperClassType.FRAGMENT -> REPLACEMENT_LIFECYCLE_SCOPE
+        SuperClassType.VIEW_MODEL -> REPLACEMENT_VIEW_MODEL_SCOPE
+        else -> REPLACEMENT_COROUTINE_SCOPE
     }
 
     private fun replaceWithOtherScope(superClassType: SuperClassType): LintFix {
         return fix().replace()
-            .text("GlobalScope")
+            .text(NODE_GLOBAL_SCOPE)
             .with(getReplacement(superClassType))
             .build()
     }
@@ -129,7 +134,7 @@ class GlobalScopeDetector: Detector(), Detector.UastScanner {
     ): LintFix {
         return fix().replace()
             .range(location)
-            .text("GlobalScope")
+            .text(NODE_GLOBAL_SCOPE)
             .with(getReplacement(superClassType))
             .build()
     }

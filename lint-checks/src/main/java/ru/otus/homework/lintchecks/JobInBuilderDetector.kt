@@ -26,9 +26,24 @@ private const val EXPLANATION =
 
 private const val PRIORITY = 6
 
-private const val CLASS = "kotlinx.coroutines.CoroutineScope"
+private const val CLASS_COROUTINE_SCOPE = "kotlinx.coroutines.CoroutineScope"
+private const val CLASS_COROUTINE_CONTEXT = "kotlin.coroutines.CoroutineContext"
+private const val CLASS_JOB = "kotlinx.coroutines.Job"
+private const val CLASS_VIEW_MODEL = "androidx.lifecycle.ViewModel"
 
-class JobInBuilderDetector: Detector(), Detector.UastScanner {
+private const val EXPRESSION_SUPERVISOR_JOB = "SupervisorJob()"
+private const val EXPRESSION_NONCANCELLABLE = "NonCancellable"
+
+private const val ARTIFACT_VIEW_MODEL = "androidx.lifecycle:lifecycle-viewmodel-ktx"
+
+private const val RECEIVER_VIEW_MODEL_SCOPE = "viewModelScope"
+
+private const val REPLACEMENT_WITH_CONTEXT = "withContext(Dispatchers.Default)"
+
+private const val REPLACE_LAUNCH = "viewModelScope.launch(NonCancellable)"
+private const val REPLACE_ASYNC = "viewModelScope.async(NonCancellable)"
+
+class JobInBuilderDetector : Detector(), Detector.UastScanner {
     companion object {
 
         val ISSUE = Issue.create(
@@ -47,16 +62,16 @@ class JobInBuilderDetector: Detector(), Detector.UastScanner {
     override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
         super.visitMethodCall(context, node, method)
 
-        if (node.receiverType?.canonicalText?.contains(CLASS) != true) return
+        if (node.receiverType?.canonicalText?.contains(CLASS_COROUTINE_SCOPE) != true) return
 
         val hasJob = node.valueArguments.find { argument ->
             context.evaluator.inheritsFrom(
                 context.evaluator.getTypeClass(argument.getExpressionType()),
-                "kotlin.coroutines.CoroutineContext",
+                CLASS_COROUTINE_CONTEXT,
                 false
             ) || context.evaluator.inheritsFrom(
                 context.evaluator.getTypeClass(argument.getExpressionType()),
-                "kotlinx.coroutines.Job",
+                CLASS_JOB,
                 false
             )
         } != null
@@ -72,31 +87,32 @@ class JobInBuilderDetector: Detector(), Detector.UastScanner {
         val receiverName = node.receiver?.asSourceString() ?: ""
 
         val hasSupervisorJob = node.valueArguments.find { argument ->
-            argument.sourcePsi?.text?.contains("SupervisorJob()") == true
+            argument.sourcePsi?.text?.contains(EXPRESSION_SUPERVISOR_JOB) == true
         } != null
 
         val hasNonCancellable = node.valueArguments.find { argument ->
-            argument.sourcePsi?.text?.contains("NonCancellable") == true
+            argument.sourcePsi?.text?.contains(EXPRESSION_NONCANCELLABLE) == true
         } != null
 
         val inViewModel = hasParentClassAndArtifact(
             context,
             ktClass?.toLightClass()?.superTypes ?: emptyArray(),
-            "androidx.lifecycle.ViewModel",
-            "androidx.lifecycle:lifecycle-viewmodel-ktx"
+            CLASS_VIEW_MODEL,
+            ARTIFACT_VIEW_MODEL
         )
 
         val isChildCoroutine =
             psiElement?.getParentOfType<KtBlockExpression>(true)
-                ?.getParentOfType<KtBlockExpression>(true)?.statements?.getOrNull(0)?.firstChild?.text == "viewModelScope"
+                ?.getParentOfType<KtBlockExpression>(true)?.statements?.getOrNull(0)?.firstChild?.text == RECEIVER_VIEW_MODEL_SCOPE
 
-        val fix = if (receiverName == "viewModelScope" && hasNonCancellable && isChildCoroutine) {
-            createChildNonCancellableFix(context.getLocation(node))
-        } else if (receiverName == "viewModelScope" && hasSupervisorJob && inViewModel) {
-            createViewModelSupervisorFix(context.getLocation(node))
-        } else {
-            null
-        }
+        val fix =
+            if (receiverName == RECEIVER_VIEW_MODEL_SCOPE && hasNonCancellable && isChildCoroutine) {
+                createChildNonCancellableFix(context.getLocation(node))
+            } else if (receiverName == RECEIVER_VIEW_MODEL_SCOPE && hasSupervisorJob && inViewModel) {
+                createViewModelSupervisorFix(context.getLocation(node))
+            } else {
+                null
+            }
 
         context.report(
             ISSUE,
@@ -107,34 +123,11 @@ class JobInBuilderDetector: Detector(), Detector.UastScanner {
         )
     }
 
-    private fun hasParentClassAndArtifact(
-        context: JavaContext,
-        superTypes: Array<out PsiType>,
-        canonicalClassName: String,
-        artifact: String
-    ): Boolean {
-        superTypes.forEach {
-            val hasDependency = context.evaluator.dependencies?.getAll()
-                ?.any { it.identifier.lowercase().contains(artifact) } == true
-            return if (it.canonicalText == canonicalClassName && hasDependency) {
-                true
-            } else {
-                hasParentClassAndArtifact(
-                    context,
-                    it.superTypes ?: emptyArray(),
-                    canonicalClassName,
-                    artifact
-                )
-            }
-        }
-        return false
-    }
-
     private fun createViewModelSupervisorFix(location: Location): LintFix {
         return fix().alternatives(
             fix().replace()
                 .range(location)
-                .text("SupervisorJob()")
+                .text(EXPRESSION_SUPERVISOR_JOB)
                 .with("")
                 .build()
         )
@@ -144,13 +137,13 @@ class JobInBuilderDetector: Detector(), Detector.UastScanner {
         return fix().alternatives(
             fix().replace()
                 .range(location)
-                .text("viewModelScope.launch(NonCancellable)")
-                .with("withContext(Dispatchers.Default)")
+                .text(REPLACE_LAUNCH)
+                .with(REPLACEMENT_WITH_CONTEXT)
                 .build(),
             fix().replace()
                 .range(location)
-                .text("viewModelScope.async(NonCancellable)")
-                .with("withContext(Dispatchers.Default)")
+                .text(REPLACE_ASYNC)
+                .with(REPLACEMENT_WITH_CONTEXT)
                 .build()
         )
     }
