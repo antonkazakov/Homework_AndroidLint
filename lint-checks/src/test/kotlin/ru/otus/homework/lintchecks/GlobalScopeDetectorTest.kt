@@ -3,6 +3,7 @@ package ru.otus.homework.lintchecks
 import com.android.tools.lint.checks.infrastructure.LintDetectorTest
 import com.android.tools.lint.checks.infrastructure.TestFiles.kotlin
 import com.android.tools.lint.checks.infrastructure.TestLintTask
+import com.android.tools.lint.checks.infrastructure.TestMode
 import org.junit.Test
 
 class GlobalScopeDetectorTest {
@@ -47,15 +48,16 @@ class GlobalScopeDetectorTest {
                     fun foo() {
                         GlobalScope.launch {}
                     }
-                }               
-            """.trimIndent()
+                } 
+                    """.trimIndent()
                 ), globalScopeStub
             )
+            .testModes(TestMode.DEFAULT)
             .run()
             .expect(
                 """src/test/pkg/Test2.kt:8: Warning: Замените GlobalScope на другой CoroutineScope [GlobalScopeUsage]
         GlobalScope.launch {}
-        ~~~~~~~~~~~~~~~~~~~~~
+        ~~~~~~~~~~~
 0 errors, 1 warnings""".trimIndent()
             )
     }

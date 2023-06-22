@@ -1,5 +1,6 @@
 package ru.otus.homework.lintchecks
 
+import com.android.tools.lint.client.api.UElementHandler
 import com.android.tools.lint.detector.api.Category
 import com.android.tools.lint.detector.api.Detector
 import com.android.tools.lint.detector.api.Implementation
@@ -15,6 +16,9 @@ import org.jetbrains.kotlin.asJava.toLightClass
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 import org.jetbrains.uast.UCallExpression
+import org.jetbrains.uast.UElement
+import org.jetbrains.uast.USimpleNameReferenceExpression
+import org.jetbrains.uast.getContainingUClass
 
 private const val ID = "GlobalScopeUsage"
 private const val BRIEF_DESCRIPTION =
@@ -42,50 +46,51 @@ class GlobalScopeDetector: Detector(), Detector.UastScanner {
         )
     }
 
-    override fun getApplicableMethodNames(): List<String>? {
-        return listOf("launch", "async", "actor")
+    override fun getApplicableUastTypes(): List<Class<out UElement>>? {
+        return listOf(USimpleNameReferenceExpression::class.java)
     }
 
-    override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
-        super.visitMethodCall(context, node, method)
+    override fun createUastHandler(context: JavaContext) = object : UElementHandler() {
+        override fun visitSimpleNameReferenceExpression(node: USimpleNameReferenceExpression) {
+            if (!(node.identifier == "GlobalScope" && node.getExpressionType()?.canonicalText == CLASS)) {
+                return
+            }
 
-        if (node.receiverType?.canonicalText?.contains(CLASS) != true) return
+            val psiElement = node.sourcePsi
 
+            val ktClass = psiElement?.getParentOfType<KtClass>(true)
+            val className = ktClass?.name
 
-        val psiElement = node.sourcePsi
+            var superClassType = SuperClassType.OTHER
 
-        val ktClass = psiElement?.getParentOfType<KtClass>(true)
-        val className = ktClass?.name
+            if (
+                hasParentClassAndArtifact(
+                    context,
+                    ktClass?.toLightClass()?.superTypes ?: emptyArray(),
+                    "androidx.lifecycle.ViewModel",
+                    "androidx.lifecycle:lifecycle-viewmodel-ktx"
+                )
+            ) {
+                superClassType = SuperClassType.VIEW_MODEL
+            } else if (
+                hasParentClassAndArtifact(
+                    context,
+                    ktClass?.toLightClass()?.superTypes ?: emptyArray(),
+                    "androidx.fragment.app.Fragment",
+                    "androidx.lifecycle:lifecycle-runtime-ktx"
+                )
+            ) {
+                superClassType = SuperClassType.FRAGMENT
+            }
 
-        var superClassType = SuperClassType.OTHER
-
-        if (
-            hasParentClassAndArtifact(
-                context,
-                ktClass?.toLightClass()?.superTypes ?: emptyArray(),
-                "androidx.lifecycle.ViewModel",
-                "androidx.lifecycle:lifecycle-viewmodel-ktx"
+            context.report(
+                ISSUE,
+                node,
+                context.getLocation(node),
+                BRIEF_DESCRIPTION,
+                createFix(className, superClassType, context.getLocation(node))
             )
-        ) {
-            superClassType = SuperClassType.VIEW_MODEL
-        } else if (
-            hasParentClassAndArtifact(
-                context,
-                ktClass?.toLightClass()?.superTypes ?: emptyArray(),
-                "androidx.fragment.app.Fragment",
-                "androidx.lifecycle:lifecycle-runtime-ktx"
-            )
-        ) {
-            superClassType = SuperClassType.FRAGMENT
         }
-
-        context.report(
-            ISSUE,
-            node,
-            context.getLocation(node),
-            BRIEF_DESCRIPTION,
-            createFix(className, superClassType, context.getLocation(node))
-        )
     }
 
     private fun hasParentClassAndArtifact(context: JavaContext, superTypes: Array<out PsiType>, canonicalClassName: String, artifact: String): Boolean {
