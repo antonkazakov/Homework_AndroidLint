@@ -60,8 +60,10 @@ class GlobalScopeDetector : Detector(), Detector.UastScanner {
         context: JavaContext,
         node: USimpleNameReferenceExpression
     ): LintFix? {
-        val hasViewModelArtifact =
-            hasArtifact(context, "androidx.lifecycle:lifecycle-viewmodel-ktx")
+        val hasViewModelArtifact = hasArtifact(
+            context = context,
+            artifactName = "androidx.lifecycle:lifecycle-viewmodel-ktx"
+        )
 
         if (!hasViewModelArtifact) return null
 
@@ -78,7 +80,10 @@ class GlobalScopeDetector : Detector(), Detector.UastScanner {
         context: JavaContext,
         node: USimpleNameReferenceExpression
     ): LintFix? {
-        val hasFragmentArtifact = hasArtifact(context, "androidx.lifecycle:lifecycle-runtime-ktx")
+        val hasFragmentArtifact = hasArtifact(
+            context = context,
+            artifactName = "androidx.lifecycle:lifecycle-runtime-ktx"
+        )
 
         if (!hasFragmentArtifact) return null
 

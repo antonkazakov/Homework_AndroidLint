@@ -7,6 +7,7 @@ import com.android.tools.lint.detector.api.Issue
 class HomeworkIssueRegistry : IssueRegistry() {
 
     override val issues: List<Issue> = listOf(
-        GlobalScopeDetector.ISSUE
+        GlobalScopeDetector.ISSUE,
+        JobInBuilderDetector.ISSUE
     )
 }

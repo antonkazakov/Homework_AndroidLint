@@ -10,7 +10,7 @@ internal class GlobalScopeDetectorTest {
     private val lintTask = lint().allowMissingSdk().issues(GlobalScopeDetector.ISSUE)
 
     @Test
-    fun `should find globalScope usage`() {
+    fun should_find_globalScope_usage() {
         lintTask
             .files(
                 kotlin(
@@ -40,7 +40,7 @@ internal class GlobalScopeDetectorTest {
     }
 
     @Test
-    fun `should find GlobalScope in ViewModel`() {
+    fun should_find_GlobalScope_in_ViewModel() {
         lintTask
             .files(
                 kotlin(
@@ -75,7 +75,7 @@ internal class GlobalScopeDetectorTest {
     }
 
     @Test
-    fun `should find 3 GlobalScope usage`() {
+    fun should_find_3_GlobalScope_usage() {
         lintTask
             .files(
                 kotlin(
