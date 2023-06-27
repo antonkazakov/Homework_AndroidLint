@@ -8,6 +8,7 @@ class HomeworkIssueRegistry : IssueRegistry() {
 
     override val issues: List<Issue> = listOf(
         GlobalScopeDetector.ISSUE,
-        JobInBuilderDetector.ISSUE
+        JobInBuilderDetector.ISSUE,
+        RawColorUsageDetector.ISSUE
     )
 }
