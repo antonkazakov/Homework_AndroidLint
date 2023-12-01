@@ -26,10 +26,13 @@ private const val PRIORITY = 6
 
 private const val GLOBAL_SCOPE_CLASS = "kotlinx.coroutines.GlobalScope"
 private const val VIEW_MODEL_CLASS = "androidx.lifecycle.ViewModel"
-private const val LIBRARY_ARTIFACT_NAME = "androidx.lifecycle:lifecycle-viewmodel-ktx"
+private const val VIEW_MODEL_KTX_ARTIFACT = "androidx.lifecycle:lifecycle-viewmodel-ktx"
+private const val FRAGMENT_CLASS = "androidx.fragment.app.Fragment"
+private const val RUNTIME_KTX_ARTIFACT = "androidx.lifecycle:lifecycle-runtime-ktx"
 
 private const val GLOBAL_SCOPE_TEXT = "GlobalScope"
 private const val VIEW_MODEL_SCOPE_TEXT = "viewModelScope"
+private const val LIFECYCLE_SCOPE_TEXT = "lifecycleScope"
 
 class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
 
@@ -60,18 +63,27 @@ class MethodCallHandler(private val context: JavaContext): UElementHandler() {
         val receiverType = node.receiverType?.canonicalText
 
         if (receiverType == GLOBAL_SCOPE_CLASS) {
-            val isNeedToCreateFix = isKotlin(node.sourcePsi)
-                    // Is in ViewModel depends class
-                    && node.getParentOfType<UClass>()?.uastSuperTypes?.any { it.getQualifiedName().toString() == VIEW_MODEL_CLASS }?: false
-                    // Is viewModel extensions artifact exists
-                    && context.evaluator.dependencies?.packageDependencies?.roots?.find { it.artifactName == LIBRARY_ARTIFACT_NAME } != null
+            val isKotlin = isKotlin(node.sourcePsi)
 
-            if (isNeedToCreateFix) {
+            if (isKotlin
+                && node.getParentOfType<UClass>()?.uastSuperTypes?.any { it.getQualifiedName().toString() == VIEW_MODEL_CLASS } == true
+                && context.evaluator.dependencies?.packageDependencies?.roots?.find { it.artifactName == VIEW_MODEL_KTX_ARTIFACT } != null
+            ) {
                 context.report(
                     GlobalScopeUsageDetector.ISSUE,
                     context.getLocation(node),
                     BRIEF_DESCRIPTION,
                     createViewModelFix()
+                )
+            } else if (isKotlin
+                && node.getParentOfType<UClass>()?.uastSuperTypes?.any { it.getQualifiedName().toString() == FRAGMENT_CLASS } == true
+                && context.evaluator.dependencies?.packageDependencies?.roots?.find { it.artifactName == RUNTIME_KTX_ARTIFACT } != null
+            ) {
+                context.report(
+                    GlobalScopeUsageDetector.ISSUE,
+                    context.getLocation(node),
+                    BRIEF_DESCRIPTION,
+                    createFragmentFix()
                 )
             } else {
                 context.report(
@@ -88,6 +100,14 @@ class MethodCallHandler(private val context: JavaContext): UElementHandler() {
             .replace()
             .text(GLOBAL_SCOPE_TEXT)
             .with(VIEW_MODEL_SCOPE_TEXT)
+            .build()
+    }
+
+    private fun createFragmentFix(): LintFix {
+        return LintFix.create()
+            .replace()
+            .text(GLOBAL_SCOPE_TEXT)
+            .with(LIFECYCLE_SCOPE_TEXT)
             .build()
     }
 }
