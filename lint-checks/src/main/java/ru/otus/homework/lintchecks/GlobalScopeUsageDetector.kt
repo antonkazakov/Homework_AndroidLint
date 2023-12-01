@@ -6,10 +6,14 @@ import com.android.tools.lint.detector.api.Detector
 import com.android.tools.lint.detector.api.Implementation
 import com.android.tools.lint.detector.api.Issue
 import com.android.tools.lint.detector.api.JavaContext
+import com.android.tools.lint.detector.api.LintFix
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
+import com.android.tools.lint.detector.api.isKotlin
 import org.jetbrains.uast.UCallExpression
+import org.jetbrains.uast.UClass
 import org.jetbrains.uast.UElement
+import org.jetbrains.uast.getParentOfType
 
 private const val ID = "GlobalScopeUsage"
 
@@ -21,6 +25,11 @@ private const val EXPLANATION = "Замените GlobalScope на Scope кон�
 private const val PRIORITY = 6
 
 private const val GLOBAL_SCOPE_CLASS = "kotlinx.coroutines.GlobalScope"
+private const val VIEW_MODEL_CLASS = "androidx.lifecycle.ViewModel"
+private const val LIBRARY_ARTIFACT_NAME = "androidx.lifecycle:lifecycle-viewmodel-ktx"
+
+private const val GLOBAL_SCOPE_TEXT = "GlobalScope"
+private const val VIEW_MODEL_SCOPE_TEXT = "viewModelScope"
 
 class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
 
@@ -51,11 +60,34 @@ class MethodCallHandler(private val context: JavaContext): UElementHandler() {
         val receiverType = node.receiverType?.canonicalText
 
         if (receiverType == GLOBAL_SCOPE_CLASS) {
-            context.report(
-                GlobalScopeUsageDetector.ISSUE,
-                context.getLocation(node),
-                BRIEF_DESCRIPTION
-            )
+            val isNeedToCreateFix = isKotlin(node.sourcePsi)
+                    // Is in ViewModel depends class
+                    && node.getParentOfType<UClass>()?.uastSuperTypes?.any { it.getQualifiedName().toString() == VIEW_MODEL_CLASS }?: false
+                    // Is viewModel extensions artifact exists
+                    && context.evaluator.dependencies?.packageDependencies?.roots?.find { it.artifactName == LIBRARY_ARTIFACT_NAME } != null
+
+            if (isNeedToCreateFix) {
+                context.report(
+                    GlobalScopeUsageDetector.ISSUE,
+                    context.getLocation(node),
+                    BRIEF_DESCRIPTION,
+                    createViewModelFix()
+                )
+            } else {
+                context.report(
+                    GlobalScopeUsageDetector.ISSUE,
+                    context.getLocation(node),
+                    BRIEF_DESCRIPTION
+                )
+            }
         }
+    }
+
+    private fun createViewModelFix(): LintFix {
+        return LintFix.create()
+            .replace()
+            .text(GLOBAL_SCOPE_TEXT)
+            .with(VIEW_MODEL_SCOPE_TEXT)
+            .build()
     }
 }
