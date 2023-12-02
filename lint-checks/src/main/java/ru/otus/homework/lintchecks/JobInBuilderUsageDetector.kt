@@ -67,7 +67,7 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
 
     class MethodCallHandler(private val context: JavaContext) : UElementHandler() {
         override fun visitCallExpression(node: UCallExpression) {
-            if (node.methodName in listOf("launch", "async")) {
+            if (node.methodIdentifier?.name in listOf("launch", "async")) {
                 val argument = node.valueArguments.getOrNull(0)
                 checkArgument(argument, node)
             }
@@ -109,7 +109,14 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
                 }
                 is UReferenceExpression -> {
                     if (argument.getExpressionType()?.canonicalText in listOf(COMPLETABLE_JOB_CLASS, JOB_CLASS, NON_CANCELABLE_CLASS)) {
-                        makeReport(context.getLocation(argument))
+                        if (
+                            argument.getExpressionType()?.canonicalText == NON_CANCELABLE_CLASS
+                            && node.receiver == null
+                        ) {
+                            makeReport(context.getLocation(node), createNonCancelableFix(node))
+                        } else {
+                            makeReport(context.getLocation(argument))
+                        }
                     }
                 }
             }
@@ -141,6 +148,16 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
                 .replace()
                 .pattern(replaceText)
                 .with("")
+                .build()
+        }
+
+        private fun createNonCancelableFix(node: UCallExpression): LintFix {
+            val coroutineBuilderName = node.methodIdentifier?.name?: ""
+            return LintFix.create()
+                .name("Заменить $coroutineBuilderName на withContext")
+                .replace()
+                .text(coroutineBuilderName)
+                .with("withContext")
                 .build()
         }
 
