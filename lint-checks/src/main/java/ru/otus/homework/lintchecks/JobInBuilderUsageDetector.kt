@@ -95,7 +95,7 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
                     checkArgument(argument.rightOperand, node, isRightOperand = true)
                 }
                 is UCallExpression -> {
-                    if (argument.classReference?.getExpressionType()?.canonicalText in listOf(COMPLETABLE_JOB_CLASS, JOB_CLASS, NON_CANCELABLE_CLASS)) {
+                    if (argument.getExpressionType()?.canonicalText == JOB_CLASS || argument.getExpressionType()?.superTypes?.any { it.canonicalText == JOB_CLASS } == true) {
                         val lintFix = if (
                             argument.classReference?.getExpressionType()?.canonicalText == COMPLETABLE_JOB_CLASS
                             && argument.methodName == SUPERVISOR_JOB_CALL_NAME
@@ -108,7 +108,7 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
                     }
                 }
                 is UReferenceExpression -> {
-                    if (argument.getExpressionType()?.canonicalText in listOf(COMPLETABLE_JOB_CLASS, JOB_CLASS, NON_CANCELABLE_CLASS)) {
+                    if (argument.getExpressionType()?.canonicalText == JOB_CLASS || argument.getExpressionType()?.superTypes?.any { it.canonicalText == JOB_CLASS } == true) {
                         if (
                             argument.getExpressionType()?.canonicalText == NON_CANCELABLE_CLASS
                             && node.receiver == null
@@ -124,7 +124,7 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
         }
 
         private fun isOnViewModelScope(node: UCallExpression): Boolean {
-            return node.getParentOfType<UClass>()?.uastSuperTypes?.any { it.getQualifiedName().toString() == VIEW_MODEL_CLASS } == true
+            return context.evaluator.extendsClass(node.getParentOfType<UClass>()?.javaPsi, VIEW_MODEL_CLASS)
                     && node.receiver is USimpleNameReferenceExpression
                     && (node.receiver as USimpleNameReferenceExpression).sourcePsi?.text == VIEW_MODEL_SCOPE_TEXT
         }

@@ -66,7 +66,7 @@ class MethodCallHandler(private val context: JavaContext): UElementHandler() {
             val isKotlin = isKotlin(node.sourcePsi)
 
             if (isKotlin
-                && node.getParentOfType<UClass>()?.uastSuperTypes?.any { it.getQualifiedName().toString() == VIEW_MODEL_CLASS } == true
+                && context.evaluator.extendsClass(node.getParentOfType<UClass>()?.javaPsi, VIEW_MODEL_CLASS)
                 && context.evaluator.dependencies?.packageDependencies?.roots?.find { it.artifactName == VIEW_MODEL_KTX_ARTIFACT } != null
             ) {
                 context.report(
@@ -76,7 +76,7 @@ class MethodCallHandler(private val context: JavaContext): UElementHandler() {
                     createViewModelFix()
                 )
             } else if (isKotlin
-                && node.getParentOfType<UClass>()?.uastSuperTypes?.any { it.getQualifiedName().toString() == FRAGMENT_CLASS } == true
+                && context.evaluator.extendsClass(node.getParentOfType<UClass>()?.javaPsi, VIEW_MODEL_CLASS)
                 && context.evaluator.dependencies?.packageDependencies?.roots?.find { it.artifactName == RUNTIME_KTX_ARTIFACT } != null
             ) {
                 context.report(
