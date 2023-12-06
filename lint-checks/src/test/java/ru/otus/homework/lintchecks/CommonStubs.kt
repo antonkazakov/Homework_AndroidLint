@@ -4,7 +4,7 @@ import com.android.tools.lint.checks.infrastructure.LintDetectorTest
 
 object CommonStubs {
 
-    val globalScopeStub = LintDetectorTest.kotlin(
+    val coroutinesStub = LintDetectorTest.kotlin(
         """
             package kotlinx.coroutines
             
@@ -15,6 +15,14 @@ object CommonStubs {
             fun CoroutineScope.async(block: suspend () -> Unit) {}
             fun CoroutineScope.runBlocking(block: suspend () -> Unit) {}
             fun delay(timeMillis: Long) {}
+            
+            object Dispatchers {
+                val IO: Any = Any()
+            }
+            interface Job
+            class CompletableJob : Job
+            fun SupervisorJob(parent: Job? = null) : CompletableJob {}
+            fun Job(parent: Job? = null): CompletableJob {}
         """.trimIndent()
     )
 

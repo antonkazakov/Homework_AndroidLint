@@ -5,7 +5,7 @@ import com.android.tools.lint.checks.infrastructure.TestFile
 import com.android.tools.lint.checks.infrastructure.TestLintTask
 import org.junit.Test
 import ru.otus.homework.lintchecks.CommonStubs.channelsStub
-import ru.otus.homework.lintchecks.CommonStubs.globalScopeStub
+import ru.otus.homework.lintchecks.CommonStubs.coroutinesStub
 import ru.otus.homework.lintchecks.CommonStubs.viewModelStub
 
 class GlobalScopeDetectorTest {
@@ -110,7 +110,7 @@ class GlobalScopeDetectorTest {
         )
         val expected = """No warnings.""".trimIndent()
         lintTask
-            .files(file, globalScopeStub, viewModelStub)
+            .files(file, coroutinesStub, viewModelStub)
             .run()
             .expectWarningCount(0)
             .expect(expected)
@@ -244,7 +244,7 @@ class GlobalScopeDetectorTest {
     }
 
     private fun check(file: TestFile, expected: String) {
-        lintTask.files(file, globalScopeStub, channelsStub, viewModelStub)
+        lintTask.files(file, coroutinesStub, channelsStub, viewModelStub)
             .run()
             .expect(expected)
     }

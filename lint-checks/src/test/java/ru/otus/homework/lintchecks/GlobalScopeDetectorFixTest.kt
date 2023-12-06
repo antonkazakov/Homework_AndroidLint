@@ -4,7 +4,7 @@ import com.android.tools.lint.checks.infrastructure.LintDetectorTest
 import com.android.tools.lint.checks.infrastructure.TestFile
 import com.android.tools.lint.checks.infrastructure.TestLintTask
 import org.junit.Test
-import ru.otus.homework.lintchecks.CommonStubs.globalScopeStub
+import ru.otus.homework.lintchecks.CommonStubs.coroutinesStub
 import ru.otus.homework.lintchecks.CommonStubs.viewModelStub
 
 class GlobalScopeDetectorFixTest {
@@ -121,7 +121,7 @@ class GlobalScopeDetectorFixTest {
     }
 
     private fun checkWithGradle(file: TestFile, gradleFile: TestFile, expected: String) {
-        lintTask.files(file, globalScopeStub, viewModelStub, gradleFile)
+        lintTask.files(file, coroutinesStub, viewModelStub, gradleFile)
             .run()
             .expectFixDiffs(expected)
     }
