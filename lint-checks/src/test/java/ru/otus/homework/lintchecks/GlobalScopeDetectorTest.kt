@@ -87,6 +87,34 @@ class GlobalScopeDetectorTest {
     }
 
     @Test
+    fun `check global scope usage case 3`() {
+        val file = LintDetectorTest.kotlin(
+            """
+                import androidx.lifecycle.ViewModel
+                import kotlinx.coroutines.CoroutineScope
+                import kotlinx.coroutines.delay
+                import kotlinx.coroutines.launch
+                
+                class GlobalScopeTestCase(private val scope: CoroutineScope) : ViewModel() {
+                
+                    fun case3() {
+                        scope.launch {
+                            delay(1000)
+                            println("Hello World")
+                        }
+                    }
+                }
+            """.trimIndent()
+        )
+        val expected = """No warnings.""".trimIndent()
+        lintTask
+            .files(file, globalScopeStub, viewModelStub)
+            .run()
+            .expectWarningCount(0)
+            .expect(expected)
+    }
+
+    @Test
     fun `check global scope launch usage`() {
         val file = LintDetectorTest.kotlin(
             """
