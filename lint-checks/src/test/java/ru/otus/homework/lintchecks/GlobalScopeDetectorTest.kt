@@ -4,7 +4,6 @@ import com.android.tools.lint.checks.infrastructure.LintDetectorTest
 import com.android.tools.lint.checks.infrastructure.TestFile
 import com.android.tools.lint.checks.infrastructure.TestLintTask
 import org.junit.Test
-import ru.otus.homework.lintchecks.GlobalScopeDetector
 
 class GlobalScopeDetectorTest {
 
@@ -264,6 +263,7 @@ class GlobalScopeDetectorTest {
     private val channelsStub = LintDetectorTest.kotlin(
         """
             package kotlinx.coroutines.channels
+            
             import kotlinx.coroutines.*
             
             fun <E> CoroutineScope.actor(block: suspend () -> Unit)
@@ -272,6 +272,7 @@ class GlobalScopeDetectorTest {
     private val viewModelStub = LintDetectorTest.kotlin(
         """
             package androidx.lifecycle
+            
             import kotlinx.coroutines.CoroutineScope
             
             abstract class ViewModel    
