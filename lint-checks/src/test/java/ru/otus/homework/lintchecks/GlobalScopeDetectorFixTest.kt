@@ -12,14 +12,15 @@ class GlobalScopeDetectorFixTest {
         .issues(GlobalScopeDetector.ISSUE)
 
     /***
-     *  Все тесты ниже падают с ошибкой AssertionError
-     *  Не смог разобраться, что делаю не так
+     *  Тесты не проходят
+     *  Предполагаю, что неправильно пишу gradle-stub
      */
 
     @Test
     fun `check replace with view model scope using build gradle`() {
         val file = LintDetectorTest.kotlin(
             """
+                import androidx.lifecycle.ViewModel
                 import kotlinx.coroutines.GlobalScope
                 import kotlinx.coroutines.launch
                 
@@ -45,6 +46,7 @@ class GlobalScopeDetectorFixTest {
     fun `check replace with view model scope using build gradle kts`() {
         val file = LintDetectorTest.kotlin(
             """
+                import androidx.lifecycle.ViewModel
                 import kotlinx.coroutines.GlobalScope
                 import kotlinx.coroutines.launch
                 
@@ -73,7 +75,7 @@ class GlobalScopeDetectorFixTest {
                 import kotlinx.coroutines.GlobalScope
                 import kotlinx.coroutines.launch
                 
-                class GlobalScopeTestCase {
+                class GlobalScopeTestCase : Fragment() {
                 
                     fun callGlobalScope() {
                         GlobalScope.launch {}
@@ -117,7 +119,7 @@ class GlobalScopeDetectorFixTest {
     }
 
     private fun checkWithGradle(file: TestFile, gradleFile: TestFile, expected: String) {
-        lintTask.files(file, globalScopeStub, gradleFile)
+        lintTask.files(file, globalScopeStub, viewModelStub, gradleFile)
             .run()
             .expectFixDiffs(expected)
     }
@@ -133,6 +135,17 @@ class GlobalScopeDetectorFixTest {
             fun CoroutineScope.async(block: suspend () -> Unit) {}
             fun CoroutineScope.runBlocking(block: suspend () -> Unit) {}
             fun delay(timeMillis: Long) {}
+        """.trimIndent()
+    )
+
+    private val viewModelStub = LintDetectorTest.kotlin(
+        """
+            package androidx.lifecycle
+            
+            import kotlinx.coroutines.CoroutineScope
+            
+            abstract class ViewModel    
+            val ViewModel.viewModelScope: CoroutineScope
         """.trimIndent()
     )
 
