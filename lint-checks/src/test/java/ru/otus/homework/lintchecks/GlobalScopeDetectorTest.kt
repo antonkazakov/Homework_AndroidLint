@@ -13,15 +13,26 @@ class GlobalScopeDetectorTest {
         .issues(GlobalScopeDetector.ISSUE)
 
     @Test
-    fun `check global scope launch usage`() {
+    fun `check global scope usage case 1`() {
         val file = LintDetectorTest.kotlin(
             """
+                import androidx.lifecycle.ViewModel
                 import kotlinx.coroutines.GlobalScope
+                import kotlinx.coroutines.delay
+                import kotlinx.coroutines.launch
+                import kotlinx.coroutines.channels.actor
                 
-                class GlobalScopeTestCase {
+                class GlobalScopeTestCase : ViewModel() {
                 
-                    fun callGlobalScope() {
-                        GlobalScope.launch {}
+                    fun case1() {
+                        GlobalScope.launch {
+                            delay(1000)
+                            println("Hello World")
+                        }
+                        GlobalScope.actor<String> {
+                            delay(1000)
+                            println("Hello World")
+                        }
                     }
                 }
             """.trimIndent()
@@ -135,7 +146,7 @@ class GlobalScopeDetectorTest {
     }
 
     private fun check(file: TestFile, expected: String) {
-        lintTask.files(file, globalScopeStub)
+        lintTask.files(file, globalScopeStub, channelsStub, viewModelStub)
             .run()
             .expect(expected)
     }
@@ -144,13 +155,31 @@ class GlobalScopeDetectorTest {
         """
             package kotlinx.coroutines
             
-            object GlobalScope {
-                fun launch()
-                fun async()
-                fun runBlocking()
-            }
+            interface CoroutineScope
+            object GlobalScope : CoroutineScope
+            
+            fun CoroutineScope.launch()
+            fun CoroutineScope.async()
+            fun CoroutineScope.runBlocking()
+            fun CoroutineScope.delay(timeMillis: Long)
         """.trimIndent()
     )
+
+    private val channelsStub = LintDetectorTest.kotlin(
+        """
+            package kotlinx.coroutines.channels
+            import kotlinx.coroutines.*
+            
+            fun <E> CoroutineScope.actor(block: suspend () -> Unit)
+        """.trimIndent()
+    )
+    private val viewModelStub = LintDetectorTest.kotlin(
+        """
+            package androidx.lifecycle
+            
+            abstract class ViewModel    
+        """.trimIndent()
+   )
 
     /***
      *  Все тесты ниже падают с ошибкой AssertionError
