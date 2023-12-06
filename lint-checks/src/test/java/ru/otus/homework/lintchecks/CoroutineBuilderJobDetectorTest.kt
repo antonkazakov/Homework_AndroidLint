@@ -102,6 +102,37 @@ class CoroutineBuilderJobDetectorTest {
             .expectClean()
     }
 
+    @Test
+    fun `check non-cancellable usage case 4`() {
+        val file = LintDetectorTest.kotlin(
+            """
+                import androidx.lifecycle.ViewModel
+                import androidx.lifecycle.viewModelScope
+                import kotlinx.coroutines.Job
+                import kotlinx.coroutines.delay
+                import kotlinx.coroutines.launch
+                
+                class JobInBuilderTestCase: ViewModel() {
+                
+                    fun case4() {
+                        viewModelScope.launch(NonCancellable) {
+                            delay(1000)
+                            println("Hello World")
+                        }
+                    }
+                }
+            """.trimIndent()
+        )
+        val expected =
+            """
+                src/JobInBuilderTestCase.kt:10: Warning: Не используйте Job/SupervisorJob внутри корутин-билдеров [JobInBuilderUsage]
+                        viewModelScope.launch(NonCancellable) {
+                        ^
+                0 errors, 1 warnings
+            """.trimIndent()
+        check(file, expected)
+    }
+
     private fun check(file: TestFile, expected: String) {
         lintTask.files(file, coroutinesStub, viewModelStub)
             .run()

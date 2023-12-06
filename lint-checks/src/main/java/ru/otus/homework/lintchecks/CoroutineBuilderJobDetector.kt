@@ -57,6 +57,9 @@ class CoroutineBuilderJobDetector : Detector(), Detector.UastScanner {
             is UParenthesizedExpression -> {
                 checkArgument(evaluator, node.expression)
             }
+            is UReferenceExpression -> {
+                node.asSourceString() == "NonCancellable"
+            }
             else -> false
         }
     }
