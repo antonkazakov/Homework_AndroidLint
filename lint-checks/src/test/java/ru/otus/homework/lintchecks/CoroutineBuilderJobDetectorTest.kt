@@ -51,7 +51,6 @@ class CoroutineBuilderJobDetectorTest {
             """
                 import androidx.lifecycle.ViewModel
                 import androidx.lifecycle.viewModelScope
-                import kotlinx.coroutines.Dispatchers
                 import kotlinx.coroutines.Job
                 import kotlinx.coroutines.delay
                 import kotlinx.coroutines.launch
@@ -69,12 +68,38 @@ class CoroutineBuilderJobDetectorTest {
         )
         val expected =
             """
-                src/JobInBuilderTestCase.kt:11: Warning: Не используйте Job/SupervisorJob внутри корутин-билдеров [JobInBuilderUsage]
+                src/JobInBuilderTestCase.kt:10: Warning: Не используйте Job/SupervisorJob внутри корутин-билдеров [JobInBuilderUsage]
                         viewModelScope.launch(Job()) {
                         ^
                 0 errors, 1 warnings
             """.trimIndent()
         check(file, expected)
+    }
+
+    @Test
+    fun `check job usage case 3`() {
+        val file = LintDetectorTest.kotlin(
+            """
+                import androidx.lifecycle.ViewModel
+                import androidx.lifecycle.viewModelScope
+                import kotlinx.coroutines.Job
+                import kotlinx.coroutines.delay
+                import kotlinx.coroutines.launch
+                
+                class JobInBuilderTestCase(private val job: Job): ViewModel() {
+                
+                    fun case3() {
+                        viewModelScope.launch(job) {
+                            delay(1000)
+                            println("Hello World")
+                        }
+                    }
+                }
+            """.trimIndent()
+        )
+        lintTask.files(file, coroutinesStub, viewModelStub)
+            .run()
+            .expectClean()
     }
 
     private fun check(file: TestFile, expected: String) {
