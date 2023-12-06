@@ -80,6 +80,7 @@ class GlobalScopeDetectorTest {
         val file = LintDetectorTest.kotlin(
             """
                 import kotlinx.coroutines.GlobalScope
+                import kotlinx.coroutines.async
                 
                 class GlobalScopeTestCase {
                 
@@ -91,7 +92,7 @@ class GlobalScopeDetectorTest {
         )
         val expected =
             """
-                src/GlobalScopeTestCase.kt:6: Warning: Не используйте GlobalScope [GlobalScopeUsage]
+                src/GlobalScopeTestCase.kt:7: Warning: Не используйте GlobalScope [GlobalScopeUsage]
                         GlobalScope.async {}
                         ~~~~~~~~~~~~~~~~~~~~
                 0 errors, 1 warnings
@@ -104,6 +105,7 @@ class GlobalScopeDetectorTest {
         val file = LintDetectorTest.kotlin(
             """
                 import kotlinx.coroutines.GlobalScope
+                import kotlinx.coroutines.runBlocking
                 
                 class GlobalScopeTestCase {
                 
@@ -115,7 +117,7 @@ class GlobalScopeDetectorTest {
         )
         val expected =
             """
-                src/GlobalScopeTestCase.kt:6: Warning: Не используйте GlobalScope [GlobalScopeUsage]
+                src/GlobalScopeTestCase.kt:7: Warning: Не используйте GlobalScope [GlobalScopeUsage]
                         GlobalScope.runBlocking {}
                         ~~~~~~~~~~~~~~~~~~~~~~~~~~
                 0 errors, 1 warnings
@@ -128,6 +130,7 @@ class GlobalScopeDetectorTest {
         val file = LintDetectorTest.kotlin(
             """
                 import kotlinx.coroutines.GlobalScope
+                import kotlinx.coroutines.launch
                 
                 class GlobalScopeTestCase {
                 
@@ -139,7 +142,7 @@ class GlobalScopeDetectorTest {
         )
         val expected =
             """
-                src/GlobalScopeTestCase.kt:6: Warning: Не используйте GlobalScope [GlobalScopeUsage]
+                src/GlobalScopeTestCase.kt:7: Warning: Не используйте GlobalScope [GlobalScopeUsage]
                         val job = GlobalScope.launch {}
                                   ~~~~~~~~~~~~~~~~~~~~~
                 0 errors, 1 warnings
@@ -152,6 +155,7 @@ class GlobalScopeDetectorTest {
         val file = LintDetectorTest.kotlin(
             """
                 import kotlinx.coroutines.GlobalScope
+                import kotlinx.coroutines.launch
                 
                 private val scope = GlobalScope
                 
@@ -165,7 +169,7 @@ class GlobalScopeDetectorTest {
         )
         val expected =
             """
-                src/GlobalScopeTestCase.kt:8: Warning: Не используйте GlobalScope [GlobalScopeUsage]
+                src/GlobalScopeTestCase.kt:9: Warning: Не используйте GlobalScope [GlobalScopeUsage]
                         scope.launch {}
                         ~~~~~~~~~~~~~~~
                 0 errors, 1 warnings
