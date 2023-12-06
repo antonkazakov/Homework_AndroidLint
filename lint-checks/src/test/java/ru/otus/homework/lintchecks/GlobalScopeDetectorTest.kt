@@ -290,8 +290,9 @@ class GlobalScopeDetectorTest {
         val file = LintDetectorTest.kotlin(
             """
                 import kotlinx.coroutines.GlobalScope
+                import kotlinx.coroutines.launch
                 
-                class GlobalScopeTestCase {
+                class GlobalScopeTestCase : ViewModel() {
                 
                     fun callGlobalScope() {
                         GlobalScope.launch {}
@@ -314,8 +315,9 @@ class GlobalScopeDetectorTest {
         val file = LintDetectorTest.kotlin(
             """
                 import kotlinx.coroutines.GlobalScope
+                import kotlinx.coroutines.launch
                 
-                class GlobalScopeTestCase {
+                class GlobalScopeTestCase : ViewModel() {
                 
                     fun callGlobalScope() {
                         GlobalScope.launch {}
@@ -338,6 +340,7 @@ class GlobalScopeDetectorTest {
         val file = LintDetectorTest.kotlin(
             """
                 import kotlinx.coroutines.GlobalScope
+                import kotlinx.coroutines.launch
                 
                 class GlobalScopeTestCase {
                 
@@ -362,6 +365,7 @@ class GlobalScopeDetectorTest {
         val file = LintDetectorTest.kotlin(
             """
                 import kotlinx.coroutines.GlobalScope
+                import kotlinx.coroutines.launch
                 
                 class GlobalScopeTestCase {
                 
