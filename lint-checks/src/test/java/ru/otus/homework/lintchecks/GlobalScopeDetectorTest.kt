@@ -51,6 +51,42 @@ class GlobalScopeDetectorTest {
     }
 
     @Test
+    fun `check global scope usage case 2`() {
+        val file = LintDetectorTest.kotlin(
+            """
+                import androidx.lifecycle.ViewModel
+                import androidx.lifecycle.viewModelScope
+                import kotlinx.coroutines.CoroutineScope
+                import kotlinx.coroutines.GlobalScope
+                import kotlinx.coroutines.async
+                import kotlinx.coroutines.delay
+                import kotlinx.coroutines.launch
+                
+                class GlobalScopeTestCase : ViewModel() {
+                
+                    fun case2() {
+                        viewModelScope.launch {
+                            val deferred = GlobalScope.async {
+                                delay(1000)
+                                "Hello World"
+                            }
+                            println(deferred.await())
+                        }
+                    }
+                }
+            """.trimIndent()
+        )
+        val expected =
+            """
+               src/GlobalScopeTestCase.kt:13: Warning: Не используйте GlobalScope [GlobalScopeUsage]
+                           val deferred = GlobalScope.async {
+                                          ^
+               0 errors, 1 warnings
+            """.trimIndent()
+        check(file, expected)
+    }
+
+    @Test
     fun `check global scope launch usage`() {
         val file = LintDetectorTest.kotlin(
             """
@@ -190,10 +226,10 @@ class GlobalScopeDetectorTest {
             interface CoroutineScope
             object GlobalScope : CoroutineScope
             
-            fun CoroutineScope.launch()
-            fun CoroutineScope.async()
-            fun CoroutineScope.runBlocking()
-            fun CoroutineScope.delay(timeMillis: Long)
+            fun CoroutineScope.launch(block: suspend () -> Unit) {}
+            fun CoroutineScope.async(block: suspend () -> Unit) {}
+            fun CoroutineScope.runBlocking(block: suspend () -> Unit) {}
+            fun delay(timeMillis: Long) {}
         """.trimIndent()
     )
 
@@ -208,8 +244,10 @@ class GlobalScopeDetectorTest {
     private val viewModelStub = LintDetectorTest.kotlin(
         """
             package androidx.lifecycle
+            import kotlinx.coroutines.CoroutineScope
             
             abstract class ViewModel    
+            val ViewModel.viewModelScope: CoroutineScope
         """.trimIndent()
    )
 
