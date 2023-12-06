@@ -51,6 +51,31 @@ class GlobalScopeDetectorTest {
     }
 
     @Test
+    fun `check global scope launch usage`() {
+        val file = LintDetectorTest.kotlin(
+            """
+                import kotlinx.coroutines.GlobalScope
+                import kotlinx.coroutines.launch
+                
+                class GlobalScopeTestCase {
+                
+                    fun callGlobalScope() {
+                        GlobalScope.launch {}
+                    }
+                }
+            """.trimIndent()
+        )
+        val expected =
+            """
+                src/GlobalScopeTestCase.kt:7: Warning: Не используйте GlobalScope [GlobalScopeUsage]
+                        GlobalScope.launch {}
+                        ~~~~~~~~~~~~~~~~~~~~~
+                0 errors, 1 warnings
+            """.trimIndent()
+        check(file, expected)
+    }
+
+    @Test
     fun `check global scope async usage`() {
         val file = LintDetectorTest.kotlin(
             """
