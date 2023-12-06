@@ -1,8 +1,9 @@
 package ru.otus.homework.lintchecks
 
+import com.android.tools.lint.client.api.JavaEvaluator
 import com.android.tools.lint.detector.api.*
 import com.intellij.psi.PsiMethod
-import org.jetbrains.uast.UCallExpression
+import org.jetbrains.uast.*
 
 private const val ID = "JobInBuilderUsage"
 private const val BRIEF_DESCRIPTION = "Не используйте Job/SupervisorJob внутри корутин-билдеров"
@@ -31,9 +32,10 @@ class CoroutineBuilderJobDetector : Detector(), Detector.UastScanner {
     }
 
     override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
+        val evaluator = context.evaluator
         if (
-            context.evaluator.getTypeClass(node.receiverType)?.qualifiedName == "kotlinx.coroutines.CoroutineScope" &&
-            node.valueArguments.any { it.asSourceString().contains("SupervisorJob") }
+            evaluator.inheritsFrom(evaluator.getTypeClass(node.receiverType), "kotlinx.coroutines.CoroutineScope") &&
+            checkArgument(evaluator, node.valueArguments[0])
         ) {
             context.report(
                 ISSUE,
@@ -41,6 +43,21 @@ class CoroutineBuilderJobDetector : Detector(), Detector.UastScanner {
                 context.getLocation(node),
                 BRIEF_DESCRIPTION
             )
+        }
+    }
+
+    private fun checkArgument(evaluator: JavaEvaluator, node: UExpression): Boolean {
+        return when (node) {
+            is UBinaryExpression -> {
+                checkArgument(evaluator, node.leftOperand) || checkArgument(evaluator, node.rightOperand)
+            }
+            is UCallExpression -> {
+                node.asSourceString() in setOf("SupervisorJob()", "Job()")
+            }
+            is UParenthesizedExpression -> {
+                checkArgument(evaluator, node.expression)
+            }
+            else -> false
         }
     }
 }
