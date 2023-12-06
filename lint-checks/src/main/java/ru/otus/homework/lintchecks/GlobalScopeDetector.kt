@@ -29,11 +29,11 @@ class GlobalScopeDetector : Detector(), SourceCodeScanner {
     }
 
     override fun getApplicableMethodNames(): List<String> {
-        return listOf("launch", "async", "runBlocking")
+        return listOf("launch", "async", "runBlocking", "actor")
     }
 
     override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
-        if (context.evaluator.isMemberInClass(method, "kotlinx.coroutines.GlobalScope")) {
+        if (node.receiverType?.canonicalText == "kotlinx.coroutines.GlobalScope") {
             context.report(
                 ISSUE,
                 node,

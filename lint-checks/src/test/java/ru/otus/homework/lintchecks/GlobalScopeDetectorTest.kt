@@ -39,10 +39,13 @@ class GlobalScopeDetectorTest {
         )
         val expected =
             """
-                src/GlobalScopeTestCase.kt:6: Warning: Не используйте GlobalScope [GlobalScopeUsage]
-                        GlobalScope.launch {}
-                        ~~~~~~~~~~~~~~~~~~~~~
-                0 errors, 1 warnings
+                src/GlobalScopeTestCase.kt:10: Warning: Не используйте GlobalScope [GlobalScopeUsage]
+                        GlobalScope.launch {
+                        ^
+                src/GlobalScopeTestCase.kt:14: Warning: Не используйте GlobalScope [GlobalScopeUsage]
+                        GlobalScope.actor<String> {
+                        ^
+                0 errors, 2 warnings
             """.trimIndent()
         check(file, expected)
     }
