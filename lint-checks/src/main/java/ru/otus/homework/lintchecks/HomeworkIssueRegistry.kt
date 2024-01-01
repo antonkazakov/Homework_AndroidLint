@@ -5,6 +5,9 @@ import com.android.tools.lint.detector.api.Issue
 
 class HomeworkIssueRegistry : IssueRegistry() {
 
-    override val issues: List<Issue>
-        get() = TODO("Not yet implemented")
+    override val issues: List<Issue> = listOf(
+        GlobalScopeRule.ISSUE,
+        JobInBuilderRule.ISSUE,
+        RawColorRule.ISSUE
+    )
 }

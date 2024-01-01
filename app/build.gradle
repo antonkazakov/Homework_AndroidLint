@@ -1,3 +1,5 @@
+import io.gitlab.arturbosch.detekt.Detekt
+
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
@@ -10,7 +12,7 @@ detekt {
     config = files("$rootDir/app/detekt/detekt.yml")
 }
 
-tasks.withType(io.gitlab.arturbosch.detekt.Detekt).configureEach {
+tasks.withType(Detekt).configureEach {
     reports {
         xml.required.set(false)
         txt.required.set(false)
@@ -61,4 +63,5 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.4.2'
     implementation 'com.google.android.material:material:1.6.1'
     testImplementation 'junit:junit:4.13.2'
+
 }
