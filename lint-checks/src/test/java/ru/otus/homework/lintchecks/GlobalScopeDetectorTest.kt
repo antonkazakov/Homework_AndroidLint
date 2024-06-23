@@ -54,10 +54,10 @@ class GlobalScopeDetectorTest {
             .run()
             .expect(
                 """
-            src/ru/otus/homework/linthomework/globalscopeusage/GlobalScopeTestCaseFragment.kt:9: Warning: Использование GlobalScope может приводить к утечкам памяти. [GlobalScopeUsage]
-                    GlobalScope.launch {
-                    ~~~~~~~~~~~
-            0 errors, 1 warnings"""
+            src/ru/otus/homework/linthomework/globalscopeusage/GlobalScopeTestCaseFragment.kt:9: Warning: Не используйте GlobalScope. [GlobalScopeUsage]
+        GlobalScope.launch {
+        ~~~~~~~~~~~
+0 errors, 1 warnings"""
             )
     }
 }

@@ -37,7 +37,7 @@ class ColorUsageDetectorTest {
             .detector(ColorUsageDetector())
             .issues(ColorUsageDetector.ISSUE)
             .run()
-            .expect("""res/layout/test_layout.xml:5: Warning: Цвет не из дизайн системы [RawColorUsage]
+            .expect("""res/layout/test_layout.xml:5: Warning: Используйте цвет @color/purple_700 [RawColorUsage]
     android:background="#FF3700B3" />
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 0 errors, 1 warnings""")
