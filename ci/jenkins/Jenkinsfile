@@ -1,0 +1,114 @@
+pipeline {
+    agent {
+        docker {
+            image 'hillwar/jenkins-android:1.0.0'
+        }
+    }
+
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'development', description: 'Specify the branch to build')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "*/${params.BRANCH_NAME}"]],
+                    userRemoteConfigs: [[url: 'https://github.com/Hillwar/Homework_AndroidLint.git']]
+                ])
+            }
+        }
+
+        stage('Code Analysis') {
+            steps {
+                script {
+                    sh './gradlew detekt'
+                }
+            }
+            post {
+                failure {
+                    archiveArtifacts artifacts: 'app/build/reports/detekt/*', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Build Debug') {
+            when {
+                anyOf {
+                    expression { params.BRANCH_NAME.startsWith("feature/") },
+                    expression { params.BRANCH_NAME.startsWith("bugfix/") }
+                }
+            }
+            steps {
+                script {
+                    sh './gradlew assembleDebug'
+                }
+            }
+            post {
+                failure {
+                    archiveArtifacts artifacts: 'app/build/test-results/testDebugUnitTest/*.xml', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Run Debug Tests') {
+            when {
+                anyOf {
+                    expression { params.BRANCH_NAME.startsWith("feature/") },
+                    expression { params.BRANCH_NAME.startsWith("bugfix/") }
+                }
+            }
+            steps {
+                script {
+                    sh './gradlew testDebugUnitTest'
+                }
+            }
+            post {
+                always {
+                    junit 'app/build/test-results/testDebugUnitTest/*.xml'
+                }
+            }
+        }
+
+        stage('Build Release') {
+            when {
+                expression { params.BRANCH_NAME.startsWith("release/") }
+            }
+            steps {
+                withCredentials([
+                    file(credentialsId: 'otus_keystore', variable: 'KEYSTORE_FILE'),
+                    file(credentialsId: 'otus_keystore_credentials', variable: 'KEYSTORE_CREDENTIALS')
+                ]) {
+                    script {
+                        sh 'cp -f ${KEYSTORE_FILE} app/keystore.jks'
+                        sh 'cp -f ${KEYSTORE_CREDENTIALS} app/keystore.properties'
+                        sh './gradlew assembleRelease'
+                    }
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'app/keystore.jks'
+                    archiveArtifacts artifacts: 'app/keystore.properties'
+                }
+            }
+        }
+
+        stage('Run Release Tests') {
+            when {
+                expression { params.BRANCH_NAME.startsWith("release/") }
+            }
+            steps {
+                script {
+                    sh './gradlew testReleaseUnitTest'
+                }
+            }
+            post {
+                always {
+                    junit 'app/build/test-results/testReleaseUnitTest/*.xml'
+                }
+            }
+        }
+    }
+}

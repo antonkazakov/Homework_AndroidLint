@@ -1,0 +1,41 @@
+pipeline {
+
+    agent {
+        docker {
+            image 'hillwar/jenkins-android:1.0.0'
+        }
+    }
+
+    triggers {
+        cron('TZ=Europe/Moscow\n0 22 * * *')
+    }
+
+    parameters {
+        string(name: 'branch', defaultValue: 'development', description: 'Enter the branch name')
+    }
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[url: 'https://github.com/Hillwar/Homework_AndroidLint.git']]
+                ])
+            }
+        }
+
+        stage('Run Gradle Profiler') {
+            steps {
+                sh 'gradle-profiler --benchmark --project-dir . assembleDebug'
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'benchmark-results/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+    }
+}
