@@ -41,13 +41,13 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
                     scope = node,
                     location = context.getLocation(arg),
                     message = BRIEF,
-                    quickfixData = createFix(context, arg, node)
+                    quickfixData = quickFix(context, arg, node)
                 )
             }
         }
     }
 
-    private fun createFix(
+    private fun quickFix(
         context: JavaContext,
         node: UExpression,
         parentNode: UExpression
@@ -64,7 +64,7 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
         if (psiClass?.hasParent(context, "androidx.lifecycle.ViewModel") == true &&
             isSupervisorJob
         ) {
-            return createSupervisorJobFix(context, node)
+            return quickSupervisorJobFix(context, node)
         }
 
         val isCoroutineContextWithOperator = node is KotlinUBinaryExpression &&
@@ -82,7 +82,7 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
                     strict = false
                 )
                 if (isSupervisorJobExpr) {
-                    return createSupervisorJobFix(context, expression)
+                    return quickSupervisorJobFix(context, expression)
                 }
             }
         }
@@ -91,13 +91,13 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
             .inheritsFrom(param, NON_CANCELABLE, false)
 
         if (isNonCancelableJob) {
-            return createNonCancelableJobFix(context, parentNode)
+            return quickNonCancelableJobFix(context, parentNode)
         }
 
         return null
     }
 
-    private fun createSupervisorJobFix(
+    private fun quickSupervisorJobFix(
         context: JavaContext,
         node: UExpression
     ): LintFix? {
@@ -116,7 +116,7 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
             .build()
     }
 
-    private fun createNonCancelableJobFix(
+    private fun quickNonCancelableJobFix(
         context: JavaContext,
         node: UExpression
     ): LintFix? {

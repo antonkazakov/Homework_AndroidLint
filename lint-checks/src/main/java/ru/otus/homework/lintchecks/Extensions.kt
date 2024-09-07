@@ -18,3 +18,7 @@ fun hasArtifact(context: JavaContext, artifactName: String): Boolean {
         it.identifier.contains(artifactName)
     } == true
 }
+
+fun String.isRawColor(): Boolean {
+    return this.matches("^#([a-fA-F0-9]{3}|[a-fA-F0-9]{6}|[a-fA-F0-9]{8})$".toRegex())
+}
