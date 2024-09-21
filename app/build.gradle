@@ -47,10 +47,6 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
-
-    lint {
-        checkOnly("GlobalScopeUsage", "JobInBuilderUsage", "RawColorUsage")
-    }
 }
 
 dependencies {
