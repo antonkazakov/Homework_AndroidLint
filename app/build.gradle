@@ -54,6 +54,9 @@ android {
 }
 
 dependencies {
+    testImplementation project(':lint-checks')
+    def lintVersion = "30.2.0"
+
     lintChecks project(":lint-checks")
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.1"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.1"
@@ -61,4 +64,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.4.2'
     implementation 'com.google.android.material:material:1.6.1'
     testImplementation 'junit:junit:4.13.2'
+    testImplementation "com.android.tools.lint:lint:$lintVersion"
+    testImplementation "com.android.tools.lint:lint-tests:$lintVersion"
+    testImplementation "com.android.tools:testutils:$lintVersion"
 }
