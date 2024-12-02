@@ -24,6 +24,11 @@ tasks.withType(io.gitlab.arturbosch.detekt.Detekt).configureEach {
 android {
     compileSdk 32
 
+    lint {
+        checkDependencies true
+//        warningsAsErrors true
+    }
+
     defaultConfig {
         applicationId "ru.otus.homework.linthomework"
         minSdk 23
@@ -49,7 +54,8 @@ android {
     }
 
     lint {
-        checkOnly("GlobalScopeUsage", "JobInBuilderUsage", "RawColorUsage")
+        checkOnly("GlobalScopeUsage", "SimpleNameUsage")
+//        checkOnly("GlobalScopeUsage", "JobInBuilderUsage", "RawColorUsage", "SimpleNameUsage")
     }
 }
 
