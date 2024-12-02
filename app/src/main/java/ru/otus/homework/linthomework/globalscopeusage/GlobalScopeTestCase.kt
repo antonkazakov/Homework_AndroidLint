@@ -68,5 +68,21 @@ class SubSubclassOfFragment : SubclassOfFragment() {
             delay(1000)
             println("Hello World")
         }
+
+        MyGlobalScopeHelper.launch()
     }
+}
+
+class MyGlobalScopeHelper {
+
+    fun test() {
+        MyGlobalScopeHelper.launch()
+    }
+
+    companion object {
+        fun launch() {
+            println("launch")
+        }
+    }
+
 }

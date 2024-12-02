@@ -17,7 +17,7 @@ import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.kotlin.toPsiType
 
-
+@Suppress("UnstableApiUsage")
 class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
 
     override fun getApplicableMethodNames(): List<String> = listOf("launch", "async", "runBlocking", "actor")
@@ -39,26 +39,25 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
         )
     }
 
-    private fun createFix(context: JavaContext, enclosingClass: PsiType): LintFix? {
-        if (isEnclosingClassSubclassOf(context, enclosingClass, VIEW_MODEL_FULL_CLASS_NAME)) {
-            return replaceWithViewModelScope()
-        } else if (isEnclosingClassSubclassOf(context, enclosingClass, FRAGMENT_FULL_CLASS_NAME)) {
-            return replaceWithLifecycleScope()
+    private fun createFix(context: JavaContext, enclosingClass: PsiType): LintFix? =
+        when {
+            isEnclosingClassSubclassOf(context, enclosingClass, VIEW_MODEL_FULL_CLASS_NAME) ->
+                replaceWithViewModelScope()
+
+            isEnclosingClassSubclassOf(context, enclosingClass, FRAGMENT_FULL_CLASS_NAME) ->
+                replaceWithLifecycleScope()
+
+            else -> null
         }
-        return null
-    }
 
     private fun isEnclosingClassSubclassOf(
         context: JavaContext, psiType: PsiType?, superClassName: String
     ): Boolean {
-        if (psiType != null) {
-            val psiClass = context.evaluator.getTypeClass(psiType)
-            if (psiClass != null && psiClass.extendsClass(context, superClassName)) {
-                return true
-            }
-        }
-        return false
+        return psiType?.let { type ->
+            context.evaluator.getTypeClass(type)?.extendsClass(context, superClassName) == true
+        } ?: false
     }
+
 
     private fun PsiClass.extendsClass(context: JavaContext, className: String): Boolean =
         context.evaluator.extendsClass(this, className, false)
@@ -87,8 +86,6 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
     such as viewModelScope or lifecycleScope.
 """
 
-        private const val PRIORITY = 6
-
         private const val CLASS = "kotlinx.coroutines.GlobalScope"
 
         private const val VIEW_MODEL_FULL_CLASS_NAME = "androidx.lifecycle.ViewModel"
@@ -110,6 +107,5 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
                 Scope.JAVA_FILE_SCOPE
             )
         )
-
     }
 }
