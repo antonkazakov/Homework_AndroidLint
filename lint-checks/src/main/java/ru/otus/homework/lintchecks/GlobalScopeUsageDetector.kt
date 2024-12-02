@@ -6,6 +6,8 @@ import com.android.tools.lint.detector.api.Detector
 import com.android.tools.lint.detector.api.Implementation
 import com.android.tools.lint.detector.api.Issue
 import com.android.tools.lint.detector.api.JavaContext
+import com.android.tools.lint.detector.api.LintFix
+import com.android.tools.lint.detector.api.Location
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.intellij.psi.PsiMethod
@@ -46,8 +48,28 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
             scope = node,
             location = context.getLocation(node.receiver),
             message = BRIEF_DESCRIPTION,
-//            createFix(isKotlin(psiElement), className, context.getLocation(node))
+            quickfixData = createFix(className, context.getLocation(psiElement))
         )
+    }
+
+    private fun createFix(className: String?, location: Location): LintFix {
+        return fix().alternatives(
+            replaceWithViewModelScope(),
+            replaceWithLifecycleScope()
+        )
+    }
+
+    private fun replaceWithViewModelScope(): LintFix {
+        return fix().replace()
+            .text("GlobalScope")
+            .with("viewModelScope")
+            .build()
+    }
+    private fun replaceWithLifecycleScope(): LintFix {
+        return fix().replace()
+            .text("GlobalScope")
+            .with("lifecycleScope")
+            .build()
     }
 
 //    private fun isViewModel(psiClass: PsiClass): Boolean {
