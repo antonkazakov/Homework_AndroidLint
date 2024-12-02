@@ -7,13 +7,14 @@ import com.android.tools.lint.detector.api.Implementation
 import com.android.tools.lint.detector.api.Issue
 import com.android.tools.lint.detector.api.JavaContext
 import com.android.tools.lint.detector.api.LintFix
-import com.android.tools.lint.detector.api.Location
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
+import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 import org.jetbrains.uast.UCallExpression
+import org.jetbrains.uast.kotlin.toPsiType
 
 private const val ID = "GlobalScopeUsage"
 private const val BRIEF_DESCRIPTION = "Don't use GlobalScope for coroutines"
@@ -43,20 +44,49 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
         val className = psiElement?.getParentOfType<KtClass>(true)?.name
         val methodCallExpression = node.methodIdentifier?.sourcePsi
 
+        // todo: I need to get enclosing class name here?
+
+        val enclosingClass: KtClass? = psiElement?.getParentOfType<KtClass>(true)
+
+        val psiParentClass: PsiClass? = context.evaluator.getTypeClass(enclosingClass!!.toPsiType())
+
         context.report(
             issue = ISSUE,
             scope = node,
             location = context.getLocation(node.receiver),
             message = BRIEF_DESCRIPTION,
-            quickfixData = createFix(className, context.getLocation(psiElement))
+            quickfixData = createFix(context, enclosingClass)
         )
     }
 
-    private fun createFix(className: String?, location: Location): LintFix {
-        return fix().alternatives(
-            replaceWithViewModelScope(),
-            replaceWithLifecycleScope()
-        )
+    private fun createFix(context: JavaContext, enclosingClass: KtClass?): LintFix? {
+        if (isEnclosingClassSubclassOfViewModel(context, enclosingClass)) {
+            return replaceWithViewModelScope()
+        }
+        else if (isEnclosingClassSubclassOfFragment(context, enclosingClass!!)) {
+            return replaceWithLifecycleScope()
+        }
+        return null
+    }
+
+    private fun isEnclosingClassSubclassOfViewModel(context: JavaContext, enclosingClass: KtClass?) : Boolean {
+        if (enclosingClass != null) {
+            val psiClass = context.evaluator.getTypeClass(enclosingClass.toPsiType())
+            if (psiClass != null && isSubclassOfViewModel(context, psiClass)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun isEnclosingClassSubclassOfFragment(context: JavaContext, enclosingClass: KtClass?) : Boolean {
+        if (enclosingClass != null) {
+            val psiClass = context.evaluator.getTypeClass(enclosingClass.toPsiType())
+            if (psiClass != null && isSubclassOfFragment(context, psiClass)) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun replaceWithViewModelScope(): LintFix {
@@ -70,6 +100,14 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
             .text("GlobalScope")
             .with("lifecycleScope")
             .build()
+    }
+
+    private fun isSubclassOfViewModel(context: JavaContext, psiClass: PsiClass): Boolean {
+        return context.evaluator.extendsClass(psiClass, "androidx.lifecycle.ViewModel", false)
+    }
+
+    private fun isSubclassOfFragment(context: JavaContext, psiClass: PsiClass): Boolean {
+        return context.evaluator.extendsClass(psiClass, "androidx.fragment.app.Fragment", false)
     }
 
 //    private fun isViewModel(psiClass: PsiClass): Boolean {

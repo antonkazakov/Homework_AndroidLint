@@ -2,6 +2,7 @@
 
 package ru.otus.homework.linthomework.globalscopeusage
 
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineScope
@@ -37,6 +38,24 @@ class GlobalScopeTestCase(private val scope: CoroutineScope) : ViewModel() {
 
     fun case3() {
         scope.launch {
+            delay(1000)
+            println("Hello World")
+        }
+    }
+}
+
+class NotSubclassOfViewModelOrFragment {
+    fun sayHello() {
+        GlobalScope.launch {
+            delay(1000)
+            println("Hello World")
+        }
+    }
+}
+
+class SubclassOfFragment : Fragment() {
+    fun sayHello() {
+        GlobalScope.launch {
             delay(1000)
             println("Hello World")
         }
