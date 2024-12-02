@@ -16,22 +16,6 @@ import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.kotlin.toPsiType
 
-private const val ID = "GlobalScopeUsage"
-private const val BRIEF_DESCRIPTION = "Don't use GlobalScope for coroutines"
-private const val EXPLANATION = """
-    Using GlobalScope can lead to coroutines that outlive the lifecycle of your app components, \
-    potentially causing memory leaks and excessive resource usage. Prefer using a more appropriate scope \
-    such as viewModelScope or lifecycleScope.
-"""
-
-private const val PRIORITY = 6
-
-private const val CLASS = "kotlinx.coroutines.GlobalScope"
-//private const val CLASS = "GlobalScope"
-
-private const val VIEW_MODEL_FULL_CLASS_NAME = "androidx.lifecycle.ViewModel"
-private const val FRAGMENT_FULL_CLASS_NAME = "androidx.fragment.app.Fragment"
-
 
 class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
 
@@ -63,8 +47,7 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
     private fun createFix(context: JavaContext, enclosingClass: KtClass?): LintFix? {
         if (isEnclosingClassSubclassOf(context, enclosingClass, VIEW_MODEL_FULL_CLASS_NAME)) {
             return replaceWithViewModelScope()
-        }
-        else if (isEnclosingClassSubclassOf(context, enclosingClass, FRAGMENT_FULL_CLASS_NAME)) {
+        } else if (isEnclosingClassSubclassOf(context, enclosingClass, FRAGMENT_FULL_CLASS_NAME)) {
             return replaceWithLifecycleScope()
         }
         return null
@@ -82,26 +65,44 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
         return false
     }
 
-
     private fun PsiClass.extendsClass(context: JavaContext, className: String): Boolean =
         context.evaluator.extendsClass(this, className, false)
 
 
     private fun replaceWithViewModelScope(): LintFix {
         return fix().replace()
-            .text("GlobalScope")
-            .with("viewModelScope")
+            .text(FIX_REPLACE_TARGET)
+            .with(FIX_REPLACE_WITH_VIEW_MODEL_SCOPE)
             .build()
     }
 
     private fun replaceWithLifecycleScope(): LintFix {
         return fix().replace()
-            .text("GlobalScope")
-            .with("lifecycleScope")
+            .text(FIX_REPLACE_TARGET)
+            .with(FIX_REPLACE_WITH_LIFECYCLE_SCOPE)
             .build()
     }
 
     companion object {
+        private const val ID = "GlobalScopeUsage"
+        private const val BRIEF_DESCRIPTION = "Don't use GlobalScope for coroutines"
+        private const val EXPLANATION = """
+    Using GlobalScope can lead to coroutines that outlive the lifecycle of your app components, \
+    potentially causing memory leaks and excessive resource usage. Prefer using a more appropriate scope \
+    such as viewModelScope or lifecycleScope.
+"""
+
+        private const val PRIORITY = 6
+
+        private const val CLASS = "kotlinx.coroutines.GlobalScope"
+
+        private const val VIEW_MODEL_FULL_CLASS_NAME = "androidx.lifecycle.ViewModel"
+        private const val FRAGMENT_FULL_CLASS_NAME = "androidx.fragment.app.Fragment"
+
+        private const val FIX_REPLACE_TARGET = "GlobalScope"
+        private const val FIX_REPLACE_WITH_LIFECYCLE_SCOPE = "lifecycleScope"
+        private const val FIX_REPLACE_WITH_VIEW_MODEL_SCOPE = "viewModelScope"
+
         val ISSUE: Issue = Issue.create(
             id = ID,
             briefDescription = BRIEF_DESCRIPTION,
@@ -114,5 +115,6 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
                 Scope.JAVA_FILE_SCOPE
             )
         )
+
     }
 }
