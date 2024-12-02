@@ -53,8 +53,17 @@ class NotSubclassOfViewModelOrFragment {
     }
 }
 
-class SubclassOfFragment : Fragment() {
+open class SubclassOfFragment : Fragment() {
     fun sayHello() {
+        GlobalScope.launch {
+            delay(1000)
+            println("Hello World")
+        }
+    }
+}
+
+class SubSubclassOfFragment : SubclassOfFragment() {
+    fun sayHello2() {
         GlobalScope.launch {
             delay(1000)
             println("Hello World")

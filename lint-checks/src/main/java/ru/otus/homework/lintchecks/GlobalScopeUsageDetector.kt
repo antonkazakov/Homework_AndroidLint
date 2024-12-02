@@ -29,6 +29,9 @@ private const val PRIORITY = 6
 private const val CLASS = "kotlinx.coroutines.GlobalScope"
 //private const val CLASS = "GlobalScope"
 
+private const val VIEW_MODEL_FULL_CLASS_NAME = "androidx.lifecycle.ViewModel"
+private const val FRAGMENT_FULL_CLASS_NAME = "androidx.fragment.app.Fragment"
+
 
 class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
 
@@ -58,36 +61,29 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
     }
 
     private fun createFix(context: JavaContext, enclosingClass: KtClass?): LintFix? {
-        if (isEnclosingClassSubclassOfViewModel(context, enclosingClass)) {
+        if (isEnclosingClassSubclassOf(context, enclosingClass, VIEW_MODEL_FULL_CLASS_NAME)) {
             return replaceWithViewModelScope()
         }
-        else if (isEnclosingClassSubclassOfFragment(context, enclosingClass!!)) {
+        else if (isEnclosingClassSubclassOf(context, enclosingClass, FRAGMENT_FULL_CLASS_NAME)) {
             return replaceWithLifecycleScope()
         }
         return null
     }
 
-    private fun isEnclosingClassSubclassOfViewModel(context: JavaContext, enclosingClass: KtClass?) : Boolean {
+    private fun isEnclosingClassSubclassOf(
+        context: JavaContext, enclosingClass: KtClass?, superClassName: String
+    ): Boolean {
         if (enclosingClass != null) {
             val psiClass = context.evaluator.getTypeClass(enclosingClass.toPsiType())
-            if (psiClass != null && psiClass.extendsClass(context, "androidx.lifecycle.ViewModel")) {
+            if (psiClass != null && psiClass.extendsClass(context, superClassName)) {
                 return true
             }
         }
         return false
     }
 
-    private fun isEnclosingClassSubclassOfFragment(context: JavaContext, enclosingClass: KtClass?) : Boolean {
-        if (enclosingClass != null) {
-            val psiClass = context.evaluator.getTypeClass(enclosingClass.toPsiType())
-            if (psiClass != null && psiClass.extendsClass(context, "androidx.fragment.app.Fragment")) {
-                return true
-            }
-        }
-        return false
-    }
 
-    private fun PsiClass.extendsClass(context: JavaContext, className: String,): Boolean =
+    private fun PsiClass.extendsClass(context: JavaContext, className: String): Boolean =
         context.evaluator.extendsClass(this, className, false)
 
 
