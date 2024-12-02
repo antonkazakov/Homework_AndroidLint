@@ -11,6 +11,7 @@ import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
+import com.intellij.psi.PsiType
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 import org.jetbrains.uast.UCallExpression
@@ -27,24 +28,18 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
         if (node.receiverType?.canonicalText?.contains(CLASS) != true) return
 
         val psiElement = node.sourcePsi
-
-        val className = psiElement?.getParentOfType<KtClass>(true)?.name
-        val methodCallExpression = node.methodIdentifier?.sourcePsi
-
-        val enclosingClass: KtClass? = psiElement?.getParentOfType<KtClass>(true)
-
-        val psiParentClass: PsiClass? = context.evaluator.getTypeClass(enclosingClass!!.toPsiType())
+        val enclosingClass: PsiType? = psiElement?.getParentOfType<KtClass>(true)?.toPsiType()
 
         context.report(
             issue = ISSUE,
             scope = node,
             location = context.getLocation(node.receiver),
             message = BRIEF_DESCRIPTION,
-            quickfixData = createFix(context, enclosingClass)
+            quickfixData = if (enclosingClass == null) null else createFix(context, enclosingClass)
         )
     }
 
-    private fun createFix(context: JavaContext, enclosingClass: KtClass?): LintFix? {
+    private fun createFix(context: JavaContext, enclosingClass: PsiType): LintFix? {
         if (isEnclosingClassSubclassOf(context, enclosingClass, VIEW_MODEL_FULL_CLASS_NAME)) {
             return replaceWithViewModelScope()
         } else if (isEnclosingClassSubclassOf(context, enclosingClass, FRAGMENT_FULL_CLASS_NAME)) {
@@ -54,10 +49,10 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
     }
 
     private fun isEnclosingClassSubclassOf(
-        context: JavaContext, enclosingClass: KtClass?, superClassName: String
+        context: JavaContext, psiType: PsiType?, superClassName: String
     ): Boolean {
-        if (enclosingClass != null) {
-            val psiClass = context.evaluator.getTypeClass(enclosingClass.toPsiType())
+        if (psiType != null) {
+            val psiClass = context.evaluator.getTypeClass(psiType)
             if (psiClass != null && psiClass.extendsClass(context, superClassName)) {
                 return true
             }
