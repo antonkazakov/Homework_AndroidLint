@@ -44,8 +44,6 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
         val className = psiElement?.getParentOfType<KtClass>(true)?.name
         val methodCallExpression = node.methodIdentifier?.sourcePsi
 
-        // todo: I need to get enclosing class name here?
-
         val enclosingClass: KtClass? = psiElement?.getParentOfType<KtClass>(true)
 
         val psiParentClass: PsiClass? = context.evaluator.getTypeClass(enclosingClass!!.toPsiType())
@@ -72,7 +70,7 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
     private fun isEnclosingClassSubclassOfViewModel(context: JavaContext, enclosingClass: KtClass?) : Boolean {
         if (enclosingClass != null) {
             val psiClass = context.evaluator.getTypeClass(enclosingClass.toPsiType())
-            if (psiClass != null && isSubclassOfViewModel(context, psiClass)) {
+            if (psiClass != null && psiClass.extendsClass(context, "androidx.lifecycle.ViewModel")) {
                 return true
             }
         }
@@ -82,12 +80,16 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
     private fun isEnclosingClassSubclassOfFragment(context: JavaContext, enclosingClass: KtClass?) : Boolean {
         if (enclosingClass != null) {
             val psiClass = context.evaluator.getTypeClass(enclosingClass.toPsiType())
-            if (psiClass != null && isSubclassOfFragment(context, psiClass)) {
+            if (psiClass != null && psiClass.extendsClass(context, "androidx.fragment.app.Fragment")) {
                 return true
             }
         }
         return false
     }
+
+    private fun PsiClass.extendsClass(context: JavaContext, className: String,): Boolean =
+        context.evaluator.extendsClass(this, className, false)
+
 
     private fun replaceWithViewModelScope(): LintFix {
         return fix().replace()
@@ -95,28 +97,13 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
             .with("viewModelScope")
             .build()
     }
+
     private fun replaceWithLifecycleScope(): LintFix {
         return fix().replace()
             .text("GlobalScope")
             .with("lifecycleScope")
             .build()
     }
-
-    private fun isSubclassOfViewModel(context: JavaContext, psiClass: PsiClass): Boolean {
-        return context.evaluator.extendsClass(psiClass, "androidx.lifecycle.ViewModel", false)
-    }
-
-    private fun isSubclassOfFragment(context: JavaContext, psiClass: PsiClass): Boolean {
-        return context.evaluator.extendsClass(psiClass, "androidx.fragment.app.Fragment", false)
-    }
-
-//    private fun isViewModel(psiClass: PsiClass): Boolean {
-//        return psiClass.isSubclassOf("androidx.lifecycle.ViewModel")
-//    }
-//
-//    private fun isFragment(psiClass: PsiClass): Boolean {
-//        return psiClass.isSubclassOf("androidx.fragment.app.Fragment")
-//    }
 
     companion object {
         val ISSUE: Issue = Issue.create(
