@@ -45,9 +45,11 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
 
             private fun createFix(context: JavaContext, enclosingClass: PsiType): LintFix? =
                 when {
+                    isDependencyPresent(context, DEPENDENCY_LIFECYCLE_VIEW_MODEL_KTX) &&
                     isEnclosingClassSubclassOf(context, enclosingClass, VIEW_MODEL_FULL_CLASS_NAME) ->
                         replaceWithViewModelScope()
 
+                    isDependencyPresent(context, DEPENDENCY_LIFECYCLE_RUNTIME_KTX) &&
                     isEnclosingClassSubclassOf(context, enclosingClass, FRAGMENT_FULL_CLASS_NAME) ->
                         replaceWithLifecycleScope()
 
@@ -78,6 +80,12 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
                     .with(FIX_REPLACE_WITH_LIFECYCLE_SCOPE)
                     .build()
             }
+
+            fun isDependencyPresent(context: JavaContext, dependency: String): Boolean {
+                return context.evaluator.dependencies?.getAll()?.any { dep ->
+                    dep.identifier.contains(dependency)
+                } ?: false
+            }
         }
     }
 
@@ -98,6 +106,9 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
         private const val FIX_REPLACE_TARGET = "GlobalScope"
         private const val FIX_REPLACE_WITH_LIFECYCLE_SCOPE = "lifecycleScope"
         private const val FIX_REPLACE_WITH_VIEW_MODEL_SCOPE = "viewModelScope"
+
+        private const val DEPENDENCY_LIFECYCLE_VIEW_MODEL_KTX = "androidx.lifecycle:lifecycle-viewmodel-ktx"
+        private const val DEPENDENCY_LIFECYCLE_RUNTIME_KTX = "androidx.lifecycle:lifecycle-runtime-ktx"
 
         val ISSUE: Issue = Issue.create(
             id = ID,
