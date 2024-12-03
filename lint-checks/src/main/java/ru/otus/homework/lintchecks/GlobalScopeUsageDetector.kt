@@ -14,24 +14,22 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiType
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
-import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UElement
+import org.jetbrains.uast.USimpleNameReferenceExpression
 import org.jetbrains.uast.kotlin.toPsiType
 
 @Suppress("UnstableApiUsage")
 class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
 
     override fun getApplicableUastTypes(): List<Class<out UElement>> {
-        return listOf(UCallExpression::class.java)
+        return listOf(USimpleNameReferenceExpression::class.java)
     }
 
     override fun createUastHandler(context: JavaContext): UElementHandler {
         return object : UElementHandler() {
 
-            override fun visitCallExpression(node: UCallExpression) {
-                if (node.methodName !in listOf("launch", "async", "runBlocking", "actor")) return
-
-                if (node.receiverType?.canonicalText?.contains(CLASS) != true) return
+            override fun visitSimpleNameReferenceExpression(node: USimpleNameReferenceExpression) {
+                if (node.identifier != CLASS_SIMPLE_NAME) return
 
                 val psiElement = node.sourcePsi
                 val enclosingClass: PsiType? = psiElement?.getParentOfType<KtClass>(true)?.toPsiType()
@@ -39,9 +37,9 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
                 context.report(
                     issue = ISSUE,
                     scope = node,
-                    location = context.getLocation(node.receiver),
+                    location = context.getLocation(node),
                     message = BRIEF_DESCRIPTION,
-                    quickfixData = if (enclosingClass == null) null else createFix(context, enclosingClass)
+                    quickfixData = if (enclosingClass == null) null else createFix(context, enclosingClass),
                 )
             }
 
@@ -92,7 +90,7 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
     such as viewModelScope or lifecycleScope.
 """
 
-        private const val CLASS = "kotlinx.coroutines.GlobalScope"
+        private const val CLASS_SIMPLE_NAME = "GlobalScope"
 
         private const val VIEW_MODEL_FULL_CLASS_NAME = "androidx.lifecycle.ViewModel"
         private const val FRAGMENT_FULL_CLASS_NAME = "androidx.fragment.app.Fragment"
