@@ -46,17 +46,17 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
             private fun createFix(context: JavaContext, enclosingClass: PsiType): LintFix? =
                 when {
                     isDependencyPresent(context, DEPENDENCY_LIFECYCLE_VIEW_MODEL_KTX) &&
-                    isEnclosingClassSubclassOf(context, enclosingClass, VIEW_MODEL_FULL_CLASS_NAME) ->
+                    isSubclassOf(context, enclosingClass, VIEW_MODEL_FULL_CLASS_NAME) ->
                         replaceWithViewModelScope()
 
                     isDependencyPresent(context, DEPENDENCY_LIFECYCLE_RUNTIME_KTX) &&
-                    isEnclosingClassSubclassOf(context, enclosingClass, FRAGMENT_FULL_CLASS_NAME) ->
+                    isSubclassOf(context, enclosingClass, FRAGMENT_FULL_CLASS_NAME) ->
                         replaceWithLifecycleScope()
 
                     else -> null
                 }
 
-            private fun isEnclosingClassSubclassOf(
+            private fun isSubclassOf(
                 context: JavaContext, psiType: PsiType?, superClassName: String
             ): Boolean {
                 return psiType?.let { type ->
