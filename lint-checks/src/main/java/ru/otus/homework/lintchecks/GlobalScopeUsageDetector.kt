@@ -1,6 +1,7 @@
 package ru.otus.homework.lintchecks
 
 
+import com.android.tools.lint.client.api.UElementHandler
 import com.android.tools.lint.detector.api.Category
 import com.android.tools.lint.detector.api.Detector
 import com.android.tools.lint.detector.api.Implementation
@@ -10,71 +11,76 @@ import com.android.tools.lint.detector.api.LintFix
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiType
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 import org.jetbrains.uast.UCallExpression
+import org.jetbrains.uast.UElement
 import org.jetbrains.uast.kotlin.toPsiType
 
 @Suppress("UnstableApiUsage")
 class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
 
-    override fun getApplicableMethodNames(): List<String> = listOf("launch", "async", "runBlocking", "actor")
-
-    override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
-        super.visitMethodCall(context, node, method)
-
-        if (node.receiverType?.canonicalText?.contains(CLASS) != true) return
-
-        val psiElement = node.sourcePsi
-        val enclosingClass: PsiType? = psiElement?.getParentOfType<KtClass>(true)?.toPsiType()
-
-        context.report(
-            issue = ISSUE,
-            scope = node,
-            location = context.getLocation(node.receiver),
-            message = BRIEF_DESCRIPTION,
-            quickfixData = if (enclosingClass == null) null else createFix(context, enclosingClass)
-        )
+    override fun getApplicableUastTypes(): List<Class<out UElement>> {
+        return listOf(UCallExpression::class.java)
     }
 
-    private fun createFix(context: JavaContext, enclosingClass: PsiType): LintFix? =
-        when {
-            isEnclosingClassSubclassOf(context, enclosingClass, VIEW_MODEL_FULL_CLASS_NAME) ->
-                replaceWithViewModelScope()
+    override fun createUastHandler(context: JavaContext): UElementHandler {
+        return object : UElementHandler() {
 
-            isEnclosingClassSubclassOf(context, enclosingClass, FRAGMENT_FULL_CLASS_NAME) ->
-                replaceWithLifecycleScope()
+            override fun visitCallExpression(node: UCallExpression) {
+                if (node.methodName !in listOf("launch", "async", "runBlocking", "actor")) return
 
-            else -> null
+                if (node.receiverType?.canonicalText?.contains(CLASS) != true) return
+
+                val psiElement = node.sourcePsi
+                val enclosingClass: PsiType? = psiElement?.getParentOfType<KtClass>(true)?.toPsiType()
+
+                context.report(
+                    issue = ISSUE,
+                    scope = node,
+                    location = context.getLocation(node.receiver),
+                    message = BRIEF_DESCRIPTION,
+                    quickfixData = if (enclosingClass == null) null else createFix(context, enclosingClass)
+                )
+            }
+
+            private fun createFix(context: JavaContext, enclosingClass: PsiType): LintFix? =
+                when {
+                    isEnclosingClassSubclassOf(context, enclosingClass, VIEW_MODEL_FULL_CLASS_NAME) ->
+                        replaceWithViewModelScope()
+
+                    isEnclosingClassSubclassOf(context, enclosingClass, FRAGMENT_FULL_CLASS_NAME) ->
+                        replaceWithLifecycleScope()
+
+                    else -> null
+                }
+
+            private fun isEnclosingClassSubclassOf(
+                context: JavaContext, psiType: PsiType?, superClassName: String
+            ): Boolean {
+                return psiType?.let { type ->
+                    context.evaluator.getTypeClass(type)?.extendsClass(context, superClassName) == true
+                } ?: false
+            }
+
+            private fun PsiClass.extendsClass(context: JavaContext, className: String): Boolean =
+                context.evaluator.extendsClass(this, className, false)
+
+            private fun replaceWithViewModelScope(): LintFix {
+                return fix().replace()
+                    .text(FIX_REPLACE_TARGET)
+                    .with(FIX_REPLACE_WITH_VIEW_MODEL_SCOPE)
+                    .build()
+            }
+
+            private fun replaceWithLifecycleScope(): LintFix {
+                return fix().replace()
+                    .text(FIX_REPLACE_TARGET)
+                    .with(FIX_REPLACE_WITH_LIFECYCLE_SCOPE)
+                    .build()
+            }
         }
-
-    private fun isEnclosingClassSubclassOf(
-        context: JavaContext, psiType: PsiType?, superClassName: String
-    ): Boolean {
-        return psiType?.let { type ->
-            context.evaluator.getTypeClass(type)?.extendsClass(context, superClassName) == true
-        } ?: false
-    }
-
-
-    private fun PsiClass.extendsClass(context: JavaContext, className: String): Boolean =
-        context.evaluator.extendsClass(this, className, false)
-
-
-    private fun replaceWithViewModelScope(): LintFix {
-        return fix().replace()
-            .text(FIX_REPLACE_TARGET)
-            .with(FIX_REPLACE_WITH_VIEW_MODEL_SCOPE)
-            .build()
-    }
-
-    private fun replaceWithLifecycleScope(): LintFix {
-        return fix().replace()
-            .text(FIX_REPLACE_TARGET)
-            .with(FIX_REPLACE_WITH_LIFECYCLE_SCOPE)
-            .build()
     }
 
     companion object {
@@ -101,7 +107,7 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
             explanation = EXPLANATION,
             category = Category.CORRECTNESS,
             priority = 6,
-            severity = Severity.WARNING,
+            severity = Severity.ERROR,
             implementation = Implementation(
                 GlobalScopeUsageDetector::class.java,
                 Scope.JAVA_FILE_SCOPE
