@@ -7,7 +7,11 @@ import com.android.tools.lint.detector.api.Issue
 class HomeworkIssueRegistry : IssueRegistry() {
 
     override val issues: List<Issue>
-        get() = listOf(GetClassSimpleNameDetector.ISSUE, GlobalScopeUsageDetector.ISSUE)
+        get() = listOf(
+            GetClassSimpleNameDetector.ISSUE,
+            GlobalScopeUsageDetector.ISSUE,
+            JobInBuilderUsageDetector.ISSUE
+        )
 
     override val api: Int
         get() = CURRENT_API

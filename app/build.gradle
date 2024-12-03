@@ -54,8 +54,7 @@ android {
     }
 
     lint {
-        checkOnly("GlobalScopeUsage", "SimpleNameUsage")
-//        checkOnly("GlobalScopeUsage", "JobInBuilderUsage", "RawColorUsage", "SimpleNameUsage")
+        checkOnly("GlobalScopeUsage", "SimpleNameUsage", "JobInBuilderUsage")
     }
 }
 
