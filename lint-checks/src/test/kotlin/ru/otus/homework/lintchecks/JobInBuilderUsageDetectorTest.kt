@@ -5,6 +5,9 @@ import com.android.tools.lint.checks.infrastructure.TestLintTask
 import com.android.tools.lint.checks.infrastructure.TestLintTask.lint
 import org.junit.Test
 import com.android.tools.lint.checks.infrastructure.TestFile
+import com.android.tools.lint.checks.infrastructure.TestFiles
+import com.android.tools.lint.checks.infrastructure.TestMode
+
 
 @Suppress("UnstableApiUsage")
 class JobInBuilderUsageDetectorTest {
@@ -40,9 +43,14 @@ class JobInBuilderUsageDetectorTest {
                 ).indented(),
                 *stubs,
             )
+            .issues(JobInBuilderUsageDetector.ISSUE)
+            .testModes(TestMode.DEFAULT)
             .run()
             .expect(
-                """todo: add error text""".trimIndent()
+                """src/ru/otus/homework/linthomework/jobinbuilderusage/JobInBuilderTestCase.kt:15: Warning: Don't use Job in builders [JobInBuilderUsage]
+        viewModelScope.launch(SupervisorJob() + Dispatchers.IO) {
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+0 errors, 1 warnings""".trimIndent()
             )
     }
 
@@ -78,7 +86,7 @@ class JobInBuilderUsageDetectorTest {
             .expect(
                 """src/ru/otus/homework/linthomework/jobinbuilderusage/JobInBuilderTestCase.kt:13: Warning: Don't use Job in builders [JobInBuilderUsage]
         viewModelScope.launch(Job()) {
-        ^
+                              ~~~~~
 0 errors, 1 warnings""".trimIndent()
             )
     }
@@ -114,7 +122,7 @@ class JobInBuilderUsageDetectorTest {
             .expect(
                 """src/ru/otus/homework/linthomework/jobinbuilderusage/JobInBuilderTestCase.kt:12: Warning: Don't use Job in builders [JobInBuilderUsage]
         viewModelScope.launch(job) {
-        ^
+                              ~~~
 0 errors, 1 warnings""".trimIndent()
             )
     }
@@ -151,7 +159,7 @@ class JobInBuilderUsageDetectorTest {
             .expect(
                 """src/ru/otus/homework/linthomework/jobinbuilderusage/JobInBuilderTestCase.kt:13: Warning: Don't use Job in builders [JobInBuilderUsage]
         viewModelScope.launch(NonCancellable) {
-        ^
+                              ~~~~~~~~~~~~~~
 0 errors, 1 warnings""".trimIndent()
             )
     }
@@ -219,100 +227,114 @@ class JobInBuilderUsageDetectorTest {
             .expect(
                 """src/ru/otus/homework/linthomework/jobinbuilderusage/JobInBuilderTestCase.kt:11: Warning: Don't use Job in builders [JobInBuilderUsage]
         viewModelScope.launch(job) {
-        ^
+                              ~~~
 0 errors, 1 warnings""".trimIndent()
             )
     }
 
-    private val viewModelStub: TestFile =
-        kotlin(
-            """
-            package androidx.lifecycle
-            
-            import kotlinx.coroutines.CoroutineScope
-            import kotlinx.coroutines.Job
-            
-            open class ViewModel {
-                val viewModelScope: CoroutineScope = CoroutineScope(Job())
-            }
-            
-            val ViewModel.viewModelScope: CoroutineScope
-                get() = CoroutineScope(Job())
-            """
-        ).indented()
-
-    private val coroutineScopeStub: TestFile =
-        kotlin(
-            """
-            package kotlinx.coroutines
-            
-            class Job
-            
-            class CoroutineScope(context: CoroutineContext)
-            
-            fun CoroutineScope.launch(job: Job, block: suspend CoroutineScope.() -> Unit) {}
-            
-            suspend fun delay(timeMillis: Long) {}
-            """
-        ).indented()
-
-    private val nonCancellableStub: TestFile =
-        kotlin(
-            """
+    val kotlinxCoroutinesJob: TestFile = TestFiles.kotlin(
+        """
         package kotlinx.coroutines
+
+        import androidx.lifecycle.CoroutineContextStub
+        import kotlin.coroutines.CoroutineContext
+
+        interface Job : CoroutineContext
+        interface CompletableJob : Job
+
+        class JobStub : Job {
+            override fun plus(context: CoroutineContext): CoroutineContext = CoroutineContextStub()
+        }
+
+        fun SupervisorJob(parent: Job? = null): CompletableJob = JobStub()
+
+        fun Job(parent: Job? = null): Job = JobStub()
 
         object NonCancellable : Job {
-            override val isActive: Boolean
-                get() = false
-            override val isCompleted: Boolean
-                get() = true
-            override val isCancelled: Boolean
-                get() = false
-
-            override fun start(): Boolean = false
-            override fun cancel(cause: CancellationException?): Boolean = false
-            override suspend fun join() {}
+            override fun plus(context: CoroutineContext): CoroutineContext = CoroutineContextStub()
         }
-        """
-        ).indented()
+    """.trimIndent()
+    )
 
-    private val dispatchersStub: TestFile =
-        kotlin(
-            """
+
+    val kotlinxCoroutinesScope: TestFile = TestFiles.kotlin(
+        """
         package kotlinx.coroutines
+
+        import kotlin.coroutines.CoroutineContext
+
+        interface CoroutineScope {
+            val coroutineContext: CoroutineContext
+        }
+
+        fun CoroutineScope.launch(
+            context: CoroutineContext,
+            block: suspend CoroutineScope.() -> Unit
+        ): Job = JobStub()
+
+        object GlobalScope : CoroutineScope
+    """.trimIndent()
+    )
+
+    val kotlinxCoroutinesDispatchers: TestFile = TestFiles.kotlin(
+        """
+        package kotlinx.coroutines
+
+        import androidx.lifecycle.CoroutineContextStub
 
         object Dispatchers {
-            val IO: CoroutineContext = TODO()
+            val IO = CoroutineContextStub()
         }
-        """
-        ).indented()
+    """.trimIndent()
+    )
 
-    private val supervisorJobStub: TestFile =
-        kotlin(
-            """
+    val kotlinxCoroutinesDelay: TestFile = TestFiles.kotlin(
+        """
         package kotlinx.coroutines
 
-        class SupervisorJob : Job {
-            override val isActive: Boolean
-                get() = false
-            override val isCompleted: Boolean
-                get() = true
-            override val isCancelled: Boolean
-                get() = false
+        suspend fun delay(time: Long)
+    """.trimIndent()
+    )
 
-            override fun start(): Boolean = false
-            override fun cancel(cause: CancellationException?): Boolean = false
-            override suspend fun join() {}
-        }
+    val kotlinCoroutines: TestFile = TestFiles.kotlin(
         """
-        ).indented()
+        package kotlin.coroutines
 
-    private val stubs =
-        arrayOf(
-            viewModelStub,
-            coroutineScopeStub,
-            nonCancellableStub,
-            dispatchersStub,
-            supervisorJobStub
-        )
+        interface CoroutineContext {
+            operator fun plus(context: CoroutineContext): CoroutineContext
+        }
+    """.trimIndent()
+    )
+
+    val androidxLifecycle: TestFile = TestFiles.kotlin(
+        """
+        package androidx.lifecycle
+
+        import kotlinx.coroutines.CoroutineScope
+        import kotlin.coroutines.CoroutineContext
+
+        abstract class ViewModel
+
+        class CoroutineScopeStub : CoroutineScope {
+            override val coroutineContext: CoroutineContext
+                get() = CoroutineContextStub()
+        }
+
+        class CoroutineContextStub : CoroutineContext {
+            override fun plus(context: CoroutineContext): CoroutineContext = CoroutineContextStub()
+        }
+
+        val ViewModel.viewModelScope: CoroutineScope
+            get() = CoroutineScopeStub()
+    """.trimIndent()
+    )
+
+    private val stubs = arrayOf(
+        kotlinxCoroutinesJob,
+        kotlinxCoroutinesScope,
+        kotlinxCoroutinesDispatchers,
+        kotlinxCoroutinesDelay,
+        kotlinCoroutines,
+        androidxLifecycle
+    )
 }
