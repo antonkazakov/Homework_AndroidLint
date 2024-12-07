@@ -8,7 +8,6 @@ import com.android.tools.lint.detector.api.JavaContext
 import com.android.tools.lint.detector.api.LintFix
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
-import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiType
 import org.jetbrains.kotlin.psi.KtClass
@@ -26,17 +25,6 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
     override fun getApplicableMethodNames(): List<String> {
         return listOf("async", "launch")
     }
-
-    private fun isSubtypeOf(
-        context: JavaContext, psiType: PsiType?, superClassName: String
-    ): Boolean {
-        return psiType?.let { type ->
-            context.evaluator.getTypeClass(type)?.inheritsFrom(context, superClassName) == true
-        } ?: false
-    }
-
-    private fun PsiClass.inheritsFrom(context: JavaContext, className: String): Boolean =
-        context.evaluator.inheritsFrom(this, className, false)
 
     override fun visitMethodCall(context: JavaContext, callExprNode: UCallExpression, method: PsiMethod) {
         val receiverType = callExprNode.receiverType ?: return

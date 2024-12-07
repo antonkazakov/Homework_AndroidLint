@@ -10,7 +10,6 @@ import com.android.tools.lint.detector.api.JavaContext
 import com.android.tools.lint.detector.api.LintFix
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
-import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiType
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
@@ -46,26 +45,15 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
             private fun createFix(context: JavaContext, enclosingClass: PsiType): LintFix? =
                 when {
                     isDependencyPresent(context, DEPENDENCY_LIFECYCLE_VIEW_MODEL_KTX) &&
-                    isSubclassOf(context, enclosingClass, VIEW_MODEL_FULL_CLASS_NAME) ->
+                    isSubtypeOf(context, enclosingClass, VIEW_MODEL_FULL_CLASS_NAME) ->
                         replaceWithViewModelScope()
 
                     isDependencyPresent(context, DEPENDENCY_LIFECYCLE_RUNTIME_KTX) &&
-                    isSubclassOf(context, enclosingClass, FRAGMENT_FULL_CLASS_NAME) ->
+                    isSubtypeOf(context, enclosingClass, FRAGMENT_FULL_CLASS_NAME) ->
                         replaceWithLifecycleScope()
 
                     else -> null
                 }
-
-            private fun isSubclassOf(
-                context: JavaContext, psiType: PsiType?, superClassName: String
-            ): Boolean {
-                return psiType?.let { type ->
-                    context.evaluator.getTypeClass(type)?.extendsClass(context, superClassName) == true
-                } ?: false
-            }
-
-            private fun PsiClass.extendsClass(context: JavaContext, className: String): Boolean =
-                context.evaluator.extendsClass(this, className, false)
 
             private fun replaceWithViewModelScope(): LintFix {
                 return fix().replace()
@@ -79,12 +67,6 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
                     .text(FIX_REPLACE_TARGET)
                     .with(FIX_REPLACE_WITH_LIFECYCLE_SCOPE)
                     .build()
-            }
-
-            fun isDependencyPresent(context: JavaContext, dependency: String): Boolean {
-                return context.evaluator.dependencies?.getAll()?.any { dep ->
-                    dep.identifier.contains(dependency)
-                } ?: false
             }
         }
     }
