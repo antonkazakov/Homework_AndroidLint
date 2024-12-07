@@ -128,6 +128,8 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
     companion object {
 
         private const val DESCRIPTION = "Don't use Job in builders"
+        private const val EXPLANATION = "Использование Job/SupervisorJob() внутри корутин-билдеров не имеет " +
+                "никакого эффекта, это может сломать ожидаемые обработку ошибок и механизм отмены корутин."
         private const val SUPERVISOR_JOB_CONSTRUCTION_CALL = "SupervisorJob()"
         private const val NON_CANCELLABLE_OBJECT = "NonCancellable"
         private const val VIEW_MODEL_SCOPE = "viewModelScope"
@@ -141,7 +143,7 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
         val ISSUE = Issue.create(
             id = "JobInBuilderUsage",
             briefDescription = DESCRIPTION,
-            explanation = "TODO: Provide explanation",
+            explanation = EXPLANATION,
             category = Category.CORRECTNESS,
             priority = 6,
             severity = Severity.WARNING,
