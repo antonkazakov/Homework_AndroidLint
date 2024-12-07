@@ -5,37 +5,20 @@ import com.android.tools.lint.detector.api.Detector
 import com.android.tools.lint.detector.api.Implementation
 import com.android.tools.lint.detector.api.Issue
 import com.android.tools.lint.detector.api.JavaContext
+import com.android.tools.lint.detector.api.LintFix
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiType
+import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 import org.jetbrains.uast.UCallExpression
+import org.jetbrains.uast.UElement
 import org.jetbrains.uast.UExpression
-import org.jetbrains.uast.getContainingUClass
 import org.jetbrains.uast.kotlin.KotlinUBinaryExpression
+import org.jetbrains.uast.kotlin.toPsiType
 
-fun PsiClass.findClass(
-    context: JavaContext,
-    classPath: String
-): PsiClass? {
-    var currentClass: PsiClass? = this
-    val (classPackage, className) = classPath.substringBeforeLast('.') to classPath.substringAfterLast('.')
-
-    while (currentClass != null) {
-        val isMatchingClassName = currentClass.name == className
-        val isMatchingClassPackage =
-            context.evaluator.getPackage(currentClass)?.qualifiedName == classPackage
-
-        if (isMatchingClassName && isMatchingClassPackage) {
-            return currentClass
-        }
-
-        currentClass = currentClass.superClass
-    }
-
-    return null
-}
 
 @Suppress("UnstableApiUsage")
 class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
@@ -44,111 +27,135 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
         return listOf("async", "launch")
     }
 
-    private fun isSubclassOf(
+    private fun isSubtypeOf(
         context: JavaContext, psiType: PsiType?, superClassName: String
     ): Boolean {
         return psiType?.let { type ->
-            context.evaluator.getTypeClass(type)?.extendsClass(context, superClassName) == true
+            context.evaluator.getTypeClass(type)?.inheritsFrom(context, superClassName) == true
         } ?: false
     }
 
-    private fun PsiClass.extendsClass(context: JavaContext, className: String): Boolean =
-        context.evaluator.extendsClass(this, className, false)
+    private fun PsiClass.inheritsFrom(context: JavaContext, className: String): Boolean =
+        context.evaluator.inheritsFrom(this, className, false)
 
-    override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
-        val receiverType = node.receiverType ?: return
-        if (!isSubclassOf(context, receiverType, "kotlinx.coroutines.CoroutineScope")) return
+    override fun visitMethodCall(context: JavaContext, callExprNode: UCallExpression, method: PsiMethod) {
+        val receiverType = callExprNode.receiverType ?: return
+        if (!isSubtypeOf(context, receiverType, COROUTINE_SCOPE_CLASS_FULL)) return
 
-        for (argument in node.valueArguments) {
+        for (argument in callExprNode.valueArguments) {
             if (isValidArgument(context, argument)) {
                 context.report(
                     issue = ISSUE,
-                    scope = node,
+                    scope = callExprNode,
                     location = context.getLocation(argument),
                     message = DESCRIPTION,
-                    quickfixData = getQuickFix(context, node)
+                    quickfixData = createFix(context, callExprNode, argument, getEnclosingClass(callExprNode))
                 )
             }
         }
     }
 
+    private fun getEnclosingClass(node: UElement): PsiType? {
+        val psiElement = node.sourcePsi
+        return psiElement?.getParentOfType<KtClass>(true)?.toPsiType()
+    }
+
     private fun isValidArgument(
         context: JavaContext,
         argument: UExpression
-    ) = isSubclassOf(context, argument.getExpressionType(), "kotlinx.coroutines.Job") ||
-            isSubclassOf(context, argument.getExpressionType(), "kotlin.coroutines.CoroutineContext")
+    ) = isSubtypeOf(context, argument.getExpressionType(), JOB_CLASS_FULL) ||
+            isSubtypeOf(context, argument.getExpressionType(), COROUTINE_CONTEXT_CLASS_FULL)
 
-    private fun getQuickFix(
+    private fun createFix(
         context: JavaContext,
-        node: UCallExpression
-    ) = when {
-        isJobInViewModel(context, node) -> suggestRemoveJob(context, node)
-        isNonCancellableJob(context, node) -> suggestReplaceCall(context, node)
-        else -> null
+        callExprNode: UCallExpression,
+        arg: UExpression,
+        enclosingClass: PsiType?
+    ): LintFix? {
+        return when {
+            isDependencyPresent(context, DEPENDENCY_LIFECYCLE_VIEW_MODEL_KTX) &&
+            isInViewModelClassAndOnViewmodelScope(context, enclosingClass, callExprNode) &&
+                    arg.isSuperVisorJobConstruction() ->
+                removeJob(context, arg)
+
+            isInViewModelClassAndOnViewmodelScope(context, enclosingClass, callExprNode) &&
+                    (arg is KotlinUBinaryExpression &&
+                            arg.operands.any { it.isSuperVisorJobConstruction() }) ->
+                getFirstNonSuperVisorJobOperandOrNull(arg.operands)?.let { operand ->
+                    replaceWithOperand(context, arg, operand)
+                }
+
+            arg.sourcePsi?.text == NON_CANCELLABLE_OBJECT ->
+                replaceCallExpressionWithContext(context, callExprNode)
+
+            else -> null
+        }
     }
 
-    private fun suggestRemoveJob(
+    private fun isInViewModelClassAndOnViewmodelScope(
+        context: JavaContext,
+        enclosingClass: PsiType?,
+        callExprNode: UCallExpression
+    ) = isSubtypeOf(context, enclosingClass, VIEW_MODEL_CLASS_FULL) &&
+            callExprNode.receiver?.sourcePsi?.text == VIEW_MODEL_SCOPE
+
+    private fun getFirstNonSuperVisorJobOperandOrNull(operands: List<UExpression>): String? =
+        (operands.first { op ->
+            op.sourcePsi?.text != SUPERVISOR_JOB_CONSTRUCTION_CALL
+        }).sourcePsi?.text
+
+    private fun UExpression.isSuperVisorJobConstruction() =
+        this.sourcePsi?.text == SUPERVISOR_JOB_CONSTRUCTION_CALL
+
+    private fun removeJob(
         context: JavaContext,
         node: UExpression
     ) = fix().replace()
-        .range(context.getLocation(node)).all()
+        .range(context.getLocation(node))
+        .all()
         .with("")
         .build()
 
-    private fun suggestReplaceCall(
+    private fun replaceWithOperand(
+        context: JavaContext,
+        node: UExpression,
+        replaceWithText: String
+    ) = fix()
+        .replace()
+        .range(context.getLocation(node))
+        .all()
+        .with(replaceWithText)
+        .build()
+
+    private fun replaceCallExpressionWithContext(
         context: JavaContext,
         node: UCallExpression
     ) = fix().replace()
         .range(context.getLocation(node))
         .text(node.methodName)
-        .with("withContext")
+        .with(WITH_CONTEXT)
         .build()
 
-
-    private fun isJobInViewModel(
-        context: JavaContext,
-        node: UCallExpression
-    ): Boolean {
-        val isSupervisorJob = isInheritsFromClass(
-            context, node, "kotlinx.coroutines.CompletableJob"
-        )
-
-        val psiClass = node.getContainingUClass()?.javaPsi ?: return false
-
-        val isViewModelContext = psiClass.findClass(context, "androidx.lifecycle.ViewModel") != null
-
-        return isSupervisorJob && isViewModelContext
-    }
-
-    private fun isNonCancellableJob(
-        context: JavaContext,
-        node: UCallExpression
-    ) = isInheritsFromClass(
-        context, node, "kotlinx.coroutines.NonCancellable"
-    )
-
-    private fun isInheritsFromClass(
-        context: JavaContext,
-        node: UExpression,
-        className: String
-    ) = with(context.evaluator) {
-        if (node is KotlinUBinaryExpression) {
-            node.operands.any { inheritsFrom(getTypeClass(it.getExpressionType()), className) }
-        } else {
-            inheritsFrom(getTypeClass(node.getExpressionType()), className)
-        }
-    }
 
     companion object {
 
         private const val DESCRIPTION = "Don't use Job in builders"
+        private const val SUPERVISOR_JOB_CONSTRUCTION_CALL = "SupervisorJob()"
+        private const val NON_CANCELLABLE_OBJECT = "NonCancellable"
+        private const val VIEW_MODEL_SCOPE = "viewModelScope"
+        private const val WITH_CONTEXT = "withContext"
+        private const val VIEW_MODEL_CLASS_FULL = "androidx.lifecycle.ViewModel"
+        private const val JOB_CLASS_FULL = "kotlinx.coroutines.Job"
+        private const val COROUTINE_CONTEXT_CLASS_FULL = "kotlin.coroutines.CoroutineContext"
+        private const val COROUTINE_SCOPE_CLASS_FULL = "kotlinx.coroutines.CoroutineScope"
+        const val DEPENDENCY_LIFECYCLE_VIEW_MODEL_KTX = "androidx.lifecycle:lifecycle-viewmodel-ktx"
 
         val ISSUE = Issue.create(
             id = "JobInBuilderUsage",
             briefDescription = DESCRIPTION,
-            explanation = "Passing Job/SupervisorJob into coroutine builders can lead to errors.",
+            explanation = "TODO: Provide explanation",
             category = Category.CORRECTNESS,
-            priority = 10,
+            priority = 6,
             severity = Severity.WARNING,
             implementation = Implementation(
                 JobInBuilderUsageDetector::class.java, Scope.JAVA_FILE_SCOPE
