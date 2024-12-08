@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 rootProject.name = "Lint Homework"
 include ':app'
 include ':lint-checks'
+include ':library'
