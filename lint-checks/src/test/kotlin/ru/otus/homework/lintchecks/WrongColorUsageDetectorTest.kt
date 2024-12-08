@@ -10,36 +10,39 @@ internal class WrongColorUsageDetectorTest {
 
     @Test
     fun `should detect AARRGGBB`() {
-        lintTask.files(
-            xml(incidentAARRGGBB.xmlFilePath,
-                incidentAARRGGBB.xmlSource))
-            .run()
-            .expect(incidentAARRGGBB.expectedResult)
+        runLintTask(
+            incidentAARRGGBB.xmlFilePath,
+            incidentAARRGGBB.xmlSource,
+            incidentAARRGGBB.expectedResult
+        )
     }
 
     @Test
     fun `should detect RRGGBB`() {
-        lintTask.files(
-            xml(incidentRRGGBB.xmlFilePath,
-                incidentRRGGBB.xmlSource))
-            .run()
-            .expect(incidentRRGGBB.expectedResult)
+        runLintTask(
+            incidentRRGGBB.xmlFilePath,
+            incidentRRGGBB.xmlSource,
+            incidentRRGGBB.expectedResult
+        )
     }
 
     @Test
     fun `should detect ARGB`() {
-        lintTask.files(
-            xml(incidentARGB.xmlFilePath,
-                incidentARGB.xmlSource))
-            .run()
-            .expect(incidentARGB.expectedResult)
+        runLintTask(
+            incidentARGB.xmlFilePath,
+            incidentARGB.xmlSource,
+            incidentARGB.expectedResult
+        )
     }
 
     @Test
     fun `should detect RGB`() {
         lintTask.files(
-            xml(incidentRGB.xmlFilePath,
-                incidentRGB.xmlSource))
+            xml(
+                incidentRGB.xmlFilePath,
+                incidentRGB.xmlSource
+            )
+        )
             .run()
             .expect(incidentRGB.expectedResult)
     }
@@ -47,11 +50,11 @@ internal class WrongColorUsageDetectorTest {
 
     @Test
     fun `should detect nothing`() {
-        lintTask.files(
-            xml(noIncident.xmlFilePath,
-                noIncident.xmlSource))
-            .run()
-            .expect(noIncident.expectedResult)
+        runLintTask(
+            noIncident.xmlFilePath,
+            noIncident.xmlSource,
+            noIncident.expectedResult
+        )
     }
 
 
@@ -59,28 +62,36 @@ internal class WrongColorUsageDetectorTest {
     // в палитре, но ссылка идет не на палитру. Наверное, надо тожет рапортовать и предлагать замену
     @Test
     fun `should detect and suggest replacement`() {
-        lintTask.files(
-            xml(incidentNonPaletteColorReference.xmlFilePath,
-                incidentNonPaletteColorReference.xmlSource))
-            .run()
-            .expect(incidentNonPaletteColorReference.expectedResult)
+        runLintTask(
+            incidentNonPaletteColorReference.xmlFilePath,
+            incidentNonPaletteColorReference.xmlSource,
+            incidentNonPaletteColorReference.expectedResult
+        )
     }
 
     @Test
     fun `should detect two issues in selector`() {
-        lintTask.files(
-            xml(incidentSelectorBadTwoColors.xmlFilePath,
-                incidentSelectorBadTwoColors.xmlSource))
-            .run()
-            .expect(incidentSelectorBadTwoColors.expectedResult)
+        runLintTask(
+            incidentSelectorBadTwoColors.xmlFilePath,
+            incidentSelectorBadTwoColors.xmlSource,
+            incidentSelectorBadTwoColors.expectedResult
+        )
     }
 
     @Test
     fun `should detect one issues in vector`() {
+        runLintTask(
+            incidentVector.xmlFilePath,
+            incidentVector.xmlSource,
+            incidentVector.expectedResult
+        )
+    }
+
+    private fun runLintTask(xmlFilePath: String, xmlSource: String, expectedResult: String) {
         lintTask.files(
-            xml(incidentVector.xmlFilePath,
-                incidentVector.xmlSource))
+            xml(xmlFilePath, xmlSource)
+        )
             .run()
-            .expect(incidentVector.expectedResult)
+            .expect(expectedResult)
     }
 }
