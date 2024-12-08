@@ -1,5 +1,6 @@
 package ru.otus.homework.lintchecks
 
+import com.android.resources.ResourceFolderType
 import com.android.tools.lint.detector.api.Category
 import com.android.tools.lint.detector.api.Context
 import com.android.tools.lint.detector.api.Implementation
@@ -18,16 +19,15 @@ import java.util.regex.Pattern
 @Suppress("UnstableApiUsage")
 internal class WrongColorUsageDetector : ResourceXmlDetector() {
 
-    // matches hexadecimal colors of lengths 3, 4, 6, or 8
-    private val COLOR_PATTERN = Pattern.compile("^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
-
     private data class ColorToLocation(
         val location: Location,
         val color: String
     )
 
     private val hexColors = mutableListOf<ColorToLocation>()
-    private val paletteColors = mutableMapOf<String, String>()
+
+    // e.g. #FF018786 -> teal_700
+    private val colorValuesToNames = mutableMapOf<String, String>()
 
     override fun getApplicableAttributes(): Collection<String>? {
         return XmlScannerConstants.ALL
@@ -57,17 +57,30 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
     }
 
     override fun visitElement(context: XmlContext, element: Element) {
-        if (context.file.name == PALETTE_FILE) {
-            val colorName = element.attributes.item(0)?.nodeValue?.lowercase() ?: return
-            val colorCode = element.firstChild.nodeValue.lowercase()
-            paletteColors[colorCode] = colorName
+        val resourceFolderType = context.resourceFolderType ?: return
+
+        // collect colors from colors.xml
+        if (resourceFolderType == ResourceFolderType.VALUES &&
+            context.file.name == PALETTE_RESOURCE_FILE) {
+            if (collectColorFromPalette(element)) return
         }
     }
 
+    private fun collectColorFromPalette(element: Element): Boolean {
+        val name = element.getAttribute("name")
+        val colorTextValue = element.textContent?.trim() ?: return true
+
+        normalizeColor(colorTextValue)?.let { normalized ->
+            colorValuesToNames[normalized.uppercase()] = name
+            println("palette colors: ${normalized.uppercase()} -> $name")
+        }
+        return false
+    }
+
     override fun afterCheckRootProject(context: Context) {
-        hexColors.forEach { rawColor ->
-            val colorNameToReplace = paletteColors[rawColor.color]
-            val location = rawColor.location
+        hexColors.forEach { hexColor ->
+            val colorNameToReplace = colorValuesToNames[hexColor.color]
+            val location = hexColor.location
             val fix = colorNameToReplace?.let {
                 quickColorFix(location = location, newColor = it)
             }
@@ -90,12 +103,16 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
     }
 
     companion object {
+
+        // matches hexadecimal colors of lengths 3, 4, 6, or 8
+        private val COLOR_PATTERN = Pattern.compile("^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
+
         private const val ID = "WrongColorUsage"
         private const val BRIEF_DESCRIPTION = "Should use colors only from palette"
         private const val EXPLANATION =
             "All app colors should be taken from the color palette defined in `colors.xml`"
         private const val PRIORITY = 6
-        private const val PALETTE_FILE = "colors.xml"
+        private const val PALETTE_RESOURCE_FILE = "colors.xml"
         private const val COLOR_PREFIX = "@color/"
 
         val ISSUE = Issue.create(
