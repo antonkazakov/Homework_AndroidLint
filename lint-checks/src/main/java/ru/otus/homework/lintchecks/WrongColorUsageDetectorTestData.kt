@@ -10,7 +10,7 @@ private const val LAYOUT_FILE_PATH = "res/layout/test_layout.xml"
 private const val SELECTOR_FILE_PATH = "res/layout/test_selector.xml"
 private const val VECTOR_FILE_PATH = "res/layout/ic_baseline_adb_24.xml"
 
-val shouldDetectBlackColorAndSuggestReplacement = XmlTestSample(
+val incidentAARRGGBB = XmlTestSample(
     xmlFilePath = LAYOUT_FILE_PATH,
     xmlSource = """
             <?xml version="1.0" encoding="utf-8"?>
@@ -37,8 +37,91 @@ val shouldDetectBlackColorAndSuggestReplacement = XmlTestSample(
 0 errors, 1 warnings""".trimIndent()
 )
 
+val incidentRRGGBB = XmlTestSample(
+    xmlFilePath = LAYOUT_FILE_PATH,
+    xmlSource = """
+            <?xml version="1.0" encoding="utf-8"?>
+                <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                
+                <View
+                android:id="@+id/case1"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_marginTop="32dp"
+                android:background="#220033"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+                
+            </androidx.constraintlayout.widget.ConstraintLayout>
+                """.trimIndent(),
+    expectedResult = """res/layout/test_layout.xml:12: Warning: Should use colors only from palette [WrongColorUsage]
+    android:background="#220033"
+                        ~~~~~~~
+0 errors, 1 warnings""".trimIndent()
+)
 
-val shouldDetectNothing = XmlTestSample(
+
+val incidentARGB = XmlTestSample(
+    xmlFilePath = LAYOUT_FILE_PATH,
+    xmlSource = """
+            <?xml version="1.0" encoding="utf-8"?>
+                <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                
+                <View
+                android:id="@+id/case1"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_marginTop="32dp"
+                android:background="#F000"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+                
+            </androidx.constraintlayout.widget.ConstraintLayout>
+                """.trimIndent(),
+    expectedResult = """res/layout/test_layout.xml:12: Warning: Should use colors only from palette [WrongColorUsage]
+    android:background="#F000"
+                        ~~~~~
+0 errors, 1 warnings""".trimIndent()
+)
+
+
+val incidentRGB = XmlTestSample(
+    xmlFilePath = LAYOUT_FILE_PATH,
+    xmlSource = """
+            <?xml version="1.0" encoding="utf-8"?>
+                <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                
+                <View
+                android:id="@+id/case1"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_marginTop="32dp"
+                android:background="#123"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+                
+            </androidx.constraintlayout.widget.ConstraintLayout>
+                """.trimIndent(),
+    expectedResult = """res/layout/test_layout.xml:12: Warning: Should use colors only from palette [WrongColorUsage]
+    android:background="#123"
+                        ~~~~
+0 errors, 1 warnings""".trimIndent()
+)
+
+
+val noIncident = XmlTestSample(
     xmlFilePath = LAYOUT_FILE_PATH,
     xmlSource = """
             <?xml version="1.0" encoding="utf-8"?>
@@ -62,7 +145,7 @@ val shouldDetectNothing = XmlTestSample(
     expectedResult = "No warnings."
 )
 
-val shouldDetectAndSuggestReplacement = XmlTestSample(
+val incidentNonPaletteColorReference = XmlTestSample(
     xmlFilePath = LAYOUT_FILE_PATH,
     xmlSource = """
             <?xml version="1.0" encoding="utf-8"?>
@@ -89,7 +172,7 @@ val shouldDetectAndSuggestReplacement = XmlTestSample(
 0 errors, 1 warnings""".trimIndent()
 )
 
-val shouldDetectTwoColors = XmlTestSample(
+val incidentSelectorBadTwoColors = XmlTestSample(
     xmlFilePath = SELECTOR_FILE_PATH,
     xmlSource = """
             <?xml version="1.0" encoding="utf-8"?>
@@ -107,7 +190,7 @@ res/layout/test_selector.xml:4: Warning: Should use colors only from palette [Wr
 0 errors, 2 warnings""".trimIndent()
 )
 
-val shouldDetectOneInVector = XmlTestSample(
+val incidentVector = XmlTestSample(
     xmlFilePath = VECTOR_FILE_PATH,
     xmlSource = """
                 <vector xmlns:android="http://schemas.android.com/apk/res/android"

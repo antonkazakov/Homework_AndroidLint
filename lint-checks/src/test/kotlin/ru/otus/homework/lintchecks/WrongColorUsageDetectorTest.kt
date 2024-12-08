@@ -9,21 +9,49 @@ internal class WrongColorUsageDetectorTest {
     private val lintTask = lint().allowMissingSdk().issues(WrongColorUsageDetector.ISSUE)
 
     @Test
-    fun `should suggest replace black color`() {
+    fun `should detect AARRGGBB`() {
         lintTask.files(
-            xml(shouldDetectBlackColorAndSuggestReplacement.xmlFilePath,
-                shouldDetectBlackColorAndSuggestReplacement.xmlSource))
+            xml(incidentAARRGGBB.xmlFilePath,
+                incidentAARRGGBB.xmlSource))
             .run()
-            .expect(shouldDetectBlackColorAndSuggestReplacement.expectedResult)
+            .expect(incidentAARRGGBB.expectedResult)
     }
+
+    @Test
+    fun `should detect RRGGBB`() {
+        lintTask.files(
+            xml(incidentRRGGBB.xmlFilePath,
+                incidentRRGGBB.xmlSource))
+            .run()
+            .expect(incidentRRGGBB.expectedResult)
+    }
+
+    @Test
+    fun `should detect ARGB`() {
+        lintTask.files(
+            xml(incidentARGB.xmlFilePath,
+                incidentARGB.xmlSource))
+            .run()
+            .expect(incidentARGB.expectedResult)
+    }
+
+    @Test
+    fun `should detect RGB`() {
+        lintTask.files(
+            xml(incidentRGB.xmlFilePath,
+                incidentRGB.xmlSource))
+            .run()
+            .expect(incidentRGB.expectedResult)
+    }
+
 
     @Test
     fun `should detect nothing`() {
         lintTask.files(
-            xml(shouldDetectNothing.xmlFilePath,
-                shouldDetectNothing.xmlSource))
+            xml(noIncident.xmlFilePath,
+                noIncident.xmlSource))
             .run()
-            .expect(shouldDetectNothing.expectedResult)
+            .expect(noIncident.expectedResult)
     }
 
 
@@ -32,27 +60,27 @@ internal class WrongColorUsageDetectorTest {
     @Test
     fun `should detect and suggest replacement`() {
         lintTask.files(
-            xml(shouldDetectAndSuggestReplacement.xmlFilePath,
-                shouldDetectAndSuggestReplacement.xmlSource))
+            xml(incidentNonPaletteColorReference.xmlFilePath,
+                incidentNonPaletteColorReference.xmlSource))
             .run()
-            .expect(shouldDetectAndSuggestReplacement.expectedResult)
+            .expect(incidentNonPaletteColorReference.expectedResult)
     }
 
     @Test
     fun `should detect two issues in selector`() {
         lintTask.files(
-            xml(shouldDetectTwoColors.xmlFilePath,
-                shouldDetectTwoColors.xmlSource))
+            xml(incidentSelectorBadTwoColors.xmlFilePath,
+                incidentSelectorBadTwoColors.xmlSource))
             .run()
-            .expect(shouldDetectTwoColors.expectedResult)
+            .expect(incidentSelectorBadTwoColors.expectedResult)
     }
 
     @Test
     fun `should detect one issues in vector`() {
         lintTask.files(
-            xml(shouldDetectOneInVector.xmlFilePath,
-                shouldDetectOneInVector.xmlSource))
+            xml(incidentVector.xmlFilePath,
+                incidentVector.xmlSource))
             .run()
-            .expect(shouldDetectOneInVector.expectedResult)
+            .expect(incidentVector.expectedResult)
     }
 }
