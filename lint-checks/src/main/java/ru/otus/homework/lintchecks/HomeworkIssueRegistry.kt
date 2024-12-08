@@ -10,7 +10,8 @@ class HomeworkIssueRegistry : IssueRegistry() {
         get() = listOf(
             GetClassSimpleNameDetector.ISSUE,
             GlobalScopeUsageDetector.ISSUE,
-            JobInBuilderUsageDetector.ISSUE
+            JobInBuilderUsageDetector.ISSUE,
+            WrongColorUsageDetector.ISSUE
         )
 
     override val api: Int
