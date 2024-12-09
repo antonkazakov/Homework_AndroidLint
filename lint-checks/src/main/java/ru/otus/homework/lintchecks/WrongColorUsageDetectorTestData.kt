@@ -166,9 +166,9 @@ val incidentNonPaletteColorReference = XmlTestSample(
                 
             </androidx.constraintlayout.widget.ConstraintLayout>
                 """.trimIndent(),
-    expectedResult = """res/layout/test_layout.xml:12: Warning: The colors used should be taken from the palette. [WrongColorUsage]
-    android:background="#FF000000"
-                        ~~~~~~~~~
+    expectedResult = """res/layout/test_layout.xml:12: Warning: Should use colors only from palette [WrongColorUsage]
+        android:background="@android:color/holo_blue_dark"
+                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 0 errors, 1 warnings""".trimIndent()
 )
 
