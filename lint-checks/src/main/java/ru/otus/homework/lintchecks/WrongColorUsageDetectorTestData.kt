@@ -3,7 +3,8 @@ package ru.otus.homework.lintchecks
 data class XmlTestSample(
     val xmlFilePath : String,
     val xmlSource: String,
-    val expectedResult: String
+    val expectedResult: String,
+    val expectedFixDiff: String? = null
 )
 
 private const val LAYOUT_FILE_PATH = "res/layout/test_layout.xml"
@@ -34,7 +35,11 @@ val incidentAARRGGBB = XmlTestSample(
     expectedResult = """res/layout/test_layout.xml:12: Warning: Color #FF000000 is in palette. Don't hardcode colors, use palette references: @color/black [WrongColorUsage]
     android:background="#FF000000"
                         ~~~~~~~~~
-0 errors, 1 warnings""".trimIndent()
+0 errors, 1 warnings""".trimIndent(),
+    expectedFixDiff = """Fix for res/layout/test_layout.xml line 12: Replace with @color/black:
+@@ -12 +12
+-     android:background="#FF000000"
++     android:background="@color/black"""".trimIndent()
 )
 
 val incidentRRGGBB = XmlTestSample(

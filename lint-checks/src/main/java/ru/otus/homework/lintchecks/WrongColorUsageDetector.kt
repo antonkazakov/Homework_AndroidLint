@@ -95,22 +95,14 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
                 if (normalizedColorValue != null) {
                     val colorName = colorValuesToNamesPalette[normalizedColorValue.uppercase()]
                     if (colorName != null) {
-                        // Есть совпадение в палитре
-                        // Предлагаем фикс: заменить сырой цвет на @color/colorName
-                        val fix = LintFix.create()
-                            .replace()
-                            .name("Заменить на @color/$colorName")
-                            .text(colorValue)
-                            .with("@color/$colorName")
-                            .autoFix()
-                            .build()
 
+                        // raw hex color is in palette
                         info.context.report(
                             issue = ISSUE,
                             scope = info.element,
                             location = info.location,
                             message = "Color $colorValue is in palette. Don't hardcode colors, use palette references: @color/$colorName",
-                            quickfixData = fix
+                            quickfixData = replaceWithLinkToPaletteFix(info.location, colorName)
                         )
 
                     } else {
@@ -162,8 +154,9 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
         return fix()
             .replace()
             .range(location)
+            .name("Replace with @color/$newColor")
             .all()
-            .with(COLOR_PREFIX + newColor)
+            .with(COLOR_RES_PREFIX + newColor)
             .build()
     }
 
@@ -179,7 +172,7 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
             "All app colors should be taken from the color palette defined in `colors.xml`"
         private const val PRIORITY = 6
         private const val PALETTE_RESOURCE_FILE = "colors.xml"
-        private const val COLOR_PREFIX = "@color/"
+        private const val COLOR_RES_PREFIX = "@color/"
 
         val ISSUE = Issue.create(
             id = ID,

@@ -13,7 +13,8 @@ internal class WrongColorUsageDetectorTest {
         runLintTask(
             incidentAARRGGBB.xmlFilePath,
             incidentAARRGGBB.xmlSource,
-            incidentAARRGGBB.expectedResult
+            incidentAARRGGBB.expectedResult,
+            incidentAARRGGBB.expectedFixDiff
         )
     }
 
@@ -87,17 +88,27 @@ internal class WrongColorUsageDetectorTest {
         )
     }
 
-    private fun runLintTask(xmlFilePath: String, xmlSource: String, expectedResult: String) {
-        lintTask.files(
+    private fun runLintTask(
+        xmlFilePath: String,
+        xmlSource: String,
+        expectedResult: String,
+        expectedFixDiff: String? = null
+    ) {
+        val result = lintTask.files(
             mockColorPalette,
             xml(xmlFilePath, xmlSource)
         )
             .run()
             .expect(expectedResult)
+
+        expectedFixDiff?.let {
+            result.expectFixDiffs(it)
+        }
     }
 
     private val mockColorPalette =
-        xml("res/values/colors.xml",
+        xml(
+            "res/values/colors.xml",
             """<?xml version="1.0" encoding="utf-8"?>
             <resources>
                 <color name="purple_200">#FFBB86FC</color>
@@ -108,5 +119,6 @@ internal class WrongColorUsageDetectorTest {
                 <color name="black">#FF000000</color>
                 <color name="white">#FFFFFFFF</color>
             </resources>
-            """.trimIndent())
+            """.trimIndent()
+        )
 }
