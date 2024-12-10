@@ -90,9 +90,10 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
 
             if (colorValue.startsWith("#")) {
                 // Это сырой HEX цвет
-                val normalized = normalizeColor(colorValue)
-                if (normalized != null) {
-                    val colorName = colorValuesToNamesPalette[normalized.uppercase()]
+                val normalizedColorValue = normalizeColor(colorValue)
+
+                if (normalizedColorValue != null) {
+                    val colorName = colorValuesToNamesPalette[normalizedColorValue.uppercase()]
                     if (colorName != null) {
                         // Есть совпадение в палитре
                         // Предлагаем фикс: заменить сырой цвет на @color/colorName
@@ -108,8 +109,7 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
                             issue = ISSUE,
                             scope = info.element,
                             location = info.location,
-//                            message = "Цвет $rawValue есть в палитре, используйте @color/$colorName вместо сырого цвета.",
-                            message = BRIEF_DESCRIPTION,
+                            message = "Color $colorValue is in palette. Don't hardcode colors, use palette references: @color/$colorName",
                             quickfixData = fix
                         )
 
