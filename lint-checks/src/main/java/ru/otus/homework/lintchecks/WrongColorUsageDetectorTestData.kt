@@ -63,7 +63,7 @@ val incidentRRGGBB = XmlTestSample(
                 
             </androidx.constraintlayout.widget.ConstraintLayout>
                 """.trimIndent(),
-    expectedResult = """res/layout/test_layout.xml:12: Warning: Should use colors only from palette [WrongColorUsage]
+    expectedResult = """res/layout/test_layout.xml:12: Warning: Using raw color #220033, which is not in the palette. Add it to the palette or use an existing color. [WrongColorUsage]
     android:background="#220033"
                         ~~~~~~~
 0 errors, 1 warnings""".trimIndent()
@@ -91,7 +91,7 @@ val incidentARGB = XmlTestSample(
                 
             </androidx.constraintlayout.widget.ConstraintLayout>
                 """.trimIndent(),
-    expectedResult = """res/layout/test_layout.xml:12: Warning: Should use colors only from palette [WrongColorUsage]
+    expectedResult = """res/layout/test_layout.xml:12: Warning: Color #F000 is in palette. Don't hardcode colors, use palette references: @color/black [WrongColorUsage]
     android:background="#F000"
                         ~~~~~
 0 errors, 1 warnings""".trimIndent()
@@ -119,7 +119,7 @@ val incidentRGB = XmlTestSample(
                 
             </androidx.constraintlayout.widget.ConstraintLayout>
                 """.trimIndent(),
-    expectedResult = """res/layout/test_layout.xml:12: Warning: Should use colors only from palette [WrongColorUsage]
+    expectedResult = """res/layout/test_layout.xml:12: Warning: Using raw color #123, which is not in the palette. Add it to the palette or use an existing color. [WrongColorUsage]
     android:background="#123"
                         ~~~~
 0 errors, 1 warnings""".trimIndent()
@@ -186,10 +186,10 @@ val incidentSelectorBadTwoColors = XmlTestSample(
                 <item android:color="#C5CAE9" />
             </selector>
                 """.trimIndent(),
-    expectedResult = """res/layout/test_selector.xml:3: Warning: Should use colors only from palette [WrongColorUsage]
+    expectedResult = """res/layout/test_selector.xml:3: Warning: Using raw color #5C6BC0, which is not in the palette. Add it to the palette or use an existing color. [WrongColorUsage]
     <item android:color="#5C6BC0" android:state_enabled="true" />
                          ~~~~~~~
-res/layout/test_selector.xml:4: Warning: Should use colors only from palette [WrongColorUsage]
+res/layout/test_selector.xml:4: Warning: Using raw color #C5CAE9, which is not in the palette. Add it to the palette or use an existing color. [WrongColorUsage]
     <item android:color="#C5CAE9" />
                          ~~~~~~~
 0 errors, 2 warnings""".trimIndent()
@@ -210,7 +210,7 @@ val incidentVector = XmlTestSample(
                         android:pathData="M5,16c0,3.87 3.13,7 7,7s7,-3.13 7,-7v-4L5,12v4zM16.12,4.37l2.1,-2.1 -0.82,-0.83 -2.3,2.31C14.16,3.28 13.12,3 12,3s-2.16,0.28 -3.09,0.75L6.6,1.44l-0.82,0.83 2.1,2.1C6.14,5.64 5,7.68 5,10v1h14v-1c0,-2.32 -1.14,-4.36 -2.88,-5.63zM9,9c-0.55,0 -1,-0.45 -1,-1s0.45,-1 1,-1 1,0.45 1,1 -0.45,1 -1,1zM15,9c-0.55,0 -1,-0.45 -1,-1s0.45,-1 1,-1 1,0.45 1,1 -0.45,1 -1,1z" />
                 </vector>
                 """.trimIndent(),
-    expectedResult = """res/layout/ic_baseline_adb_24.xml:4: Warning: Should use colors only from palette [WrongColorUsage]
+    expectedResult = """res/layout/ic_baseline_adb_24.xml:4: Warning: Using raw color #b4ffff, which is not in the palette. Add it to the palette or use an existing color. [WrongColorUsage]
     android:tint="#b4ffff"
                   ~~~~~~~
 0 errors, 1 warnings""".trimIndent()

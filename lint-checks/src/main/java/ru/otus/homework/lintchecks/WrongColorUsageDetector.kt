@@ -113,13 +113,12 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
                             .with("")
                             .build()
 
-                        // Нет совпадения в палитре
+                        // raw hex color is not in palette
                         info.context.report(
                             issue = ISSUE,
                             scope = info.element,
                             location = info.location,
-//                            message = "Используется сырой цвет $rawValue, отсутствующий в палитре. Добавьте его в палитру или используйте существующий цвет."
-                            message = BRIEF_DESCRIPTION,
+                            message = "Using raw color $colorValue, which is not in the palette. Add it to the palette or use an existing color.",
                             quickfixData = fix
 
                         )
