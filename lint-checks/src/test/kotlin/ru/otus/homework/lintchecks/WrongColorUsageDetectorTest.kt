@@ -59,14 +59,13 @@ internal class WrongColorUsageDetectorTest {
     }
 
 
-    // здесь непонятный случай - здесь есть android:background="@android:color/holo_blue_dark", цвет есть
-    // в палитре, но ссылка идет не на палитру. Наверное, надо тожет рапортовать и предлагать замену
+    // should detect system refs: android:background="@android:color/holo_blue_dark"
     @Test
-    fun `should detect and suggest replacement`() {
+    fun `should detect android system color ref`() {
         runLintTask(
-            incidentNonPaletteColorReference.xmlFilePath,
-            incidentNonPaletteColorReference.xmlSource,
-            incidentNonPaletteColorReference.expectedResult
+            incidentNonPaletteSystemColorReference.xmlFilePath,
+            incidentNonPaletteSystemColorReference.xmlSource,
+            incidentNonPaletteSystemColorReference.expectedResult
         )
     }
 

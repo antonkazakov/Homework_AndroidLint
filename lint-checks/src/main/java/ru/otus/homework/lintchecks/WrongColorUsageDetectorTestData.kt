@@ -150,7 +150,7 @@ val noIncident = XmlTestSample(
     expectedResult = "No warnings."
 )
 
-val incidentNonPaletteColorReference = XmlTestSample(
+val incidentNonPaletteSystemColorReference = XmlTestSample(
     xmlFilePath = LAYOUT_FILE_PATH,
     xmlSource = """
             <?xml version="1.0" encoding="utf-8"?>
@@ -171,7 +171,7 @@ val incidentNonPaletteColorReference = XmlTestSample(
                 
             </androidx.constraintlayout.widget.ConstraintLayout>
                 """.trimIndent(),
-    expectedResult = """res/layout/test_layout.xml:12: Warning: Should use colors only from palette [WrongColorUsage]
+    expectedResult = """res/layout/test_layout.xml:12: Warning: System color @android:color/holo_blue_dark is used. Add the corresponding color to the palette or use an existing one. [WrongColorUsage]
         android:background="@android:color/holo_blue_dark"
                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 0 errors, 1 warnings""".trimIndent()

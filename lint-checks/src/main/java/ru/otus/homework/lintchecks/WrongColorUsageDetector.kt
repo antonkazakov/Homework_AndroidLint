@@ -126,24 +126,12 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
                 }
             } else if (colorValue.startsWith("@android:color/")) {
 
-                val fix = LintFix.create()
-                    .replace()
-                    .range(info.location)
-                    .with("")
-                    .build()
-
-//                val normalized = normalizeColor(colorValue)
-//                val colorName = colorValuesToNamesPalette[normalized!!.uppercase()]
-
-                // Системный цвет - не из палитры
+                // system color is used
                 info.context.report(
                     issue = ISSUE,
                     scope = info.element,
                     location = info.location,
-//                    message = "Используется системный цвет $rawValue, которого нет в палитре. Добавьте
-//                    соответствующий цвет в палитру или используйте уже имеющийся."
-                    message = BRIEF_DESCRIPTION,
-                    quickfixData = replaceWithLinkToPaletteFix(info.location, "AAA")
+                    message = "System color $colorValue is used. Add the corresponding color to the palette or use an existing one.",
                 )
             }
         }
