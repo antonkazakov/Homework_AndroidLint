@@ -107,20 +107,12 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
 
                     } else {
 
-                        val fix = LintFix.create()
-                            .replace()
-                            .range(info.location)
-                            .with("")
-                            .build()
-
                         // raw hex color is not in palette
                         info.context.report(
                             issue = ISSUE,
                             scope = info.element,
                             location = info.location,
                             message = "Using raw color $colorValue, which is not in the palette. Add it to the palette or use an existing color.",
-                            quickfixData = fix
-
                         )
                     }
                 }
