@@ -30,10 +30,10 @@ internal class GlobalScopeUsageDetectorTest {
             )
             .run()
             .expect(
-                """src/GlobalScopeTestCase.kt:5: Error: Don't use GlobalScope for coroutines [GlobalScopeUsage]
+                """src/GlobalScopeTestCase.kt:5: Warning: Don't use GlobalScope for coroutines [GlobalScopeUsage]
                             GlobalScope.launch {
                             ~~~~~~~~~~~
-1 errors, 0 warnings                 
+0 errors, 1 warnings                 
             """.trimIndent()
             )
     }
@@ -62,13 +62,13 @@ internal class GlobalScopeUsageDetectorTest {
             )
             .run()
             .expect(
-                """src/GlobalScopeTestCase.kt:5: Error: Don't use GlobalScope for coroutines [GlobalScopeUsage]
+                """src/GlobalScopeTestCase.kt:5: Warning: Don't use GlobalScope for coroutines [GlobalScopeUsage]
                                 GlobalScope.launch {
                                 ~~~~~~~~~~~
-src/GlobalScopeTestCase.kt:9: Error: Don't use GlobalScope for coroutines [GlobalScopeUsage]
+src/GlobalScopeTestCase.kt:9: Warning: Don't use GlobalScope for coroutines [GlobalScopeUsage]
                                 GlobalScope.actor<String> {
                                 ~~~~~~~~~~~
-2 errors, 0 warnings""".trimIndent()
+0 errors, 2 warnings""".trimIndent()
             )
     }
 
@@ -94,10 +94,10 @@ src/GlobalScopeTestCase.kt:9: Error: Don't use GlobalScope for coroutines [Globa
             )
             .run()
             .expect(
-                """src/GlobalScopeTestCase.kt:5: Error: Don't use GlobalScope for coroutines [GlobalScopeUsage]
+                """src/GlobalScopeTestCase.kt:5: Warning: Don't use GlobalScope for coroutines [GlobalScopeUsage]
                                 val deferred = GlobalScope.async {
                                                ~~~~~~~~~~~
-1 errors, 0 warnings""".trimIndent()
+0 errors, 1 warnings""".trimIndent()
             )
     }
 

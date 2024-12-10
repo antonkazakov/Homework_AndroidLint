@@ -98,7 +98,7 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
             explanation = EXPLANATION,
             category = Category.CORRECTNESS,
             priority = 6,
-            severity = Severity.ERROR,
+            severity = Severity.WARNING,
             implementation = Implementation(
                 GlobalScopeUsageDetector::class.java,
                 Scope.JAVA_FILE_SCOPE
