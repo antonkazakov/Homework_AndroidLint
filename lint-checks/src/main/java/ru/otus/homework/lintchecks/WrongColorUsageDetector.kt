@@ -22,10 +22,8 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
     private data class ColorInfo(
         val location: Location,
         val colorValue: String,
-        val context: XmlContext,
+        val xmlContext: XmlContext,
         val element: Element,
-        val attributeName: String,
-        val attributeValue: String
     )
 
     private val hexColorsAndRefs = mutableListOf<ColorInfo>()
@@ -48,10 +46,8 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
                 ColorInfo(
                     location = context.getValueLocation(attribute),
                     colorValue = attrValue,
-                    context = context,
+                    xmlContext = context,
                     element = attribute.ownerElement,
-                    attributeName = attribute.name,
-                    attributeValue = attrValue
                 )
             )
         }
@@ -63,7 +59,6 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
 
     override fun visitElement(context: XmlContext, element: Element) {
         val resourceFolderType = context.resourceFolderType ?: return
-
         if (resourceFolderType == ResourceFolderType.VALUES &&
             context.file.name == PALETTE_RESOURCE_FILE
         ) {
@@ -72,16 +67,16 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
     }
 
     private fun saveColorToPalette(element: Element) {
-        val name = element.getAttribute("name")
+        val attrName = element.getAttribute("name")
         val colorTextValue = element.textContent?.trim() ?: return
 
         normalizeColor(colorTextValue)?.let { normalized ->
-            colorValuesToNamesPalette[normalized.uppercase()] = name
+            colorValuesToNamesPalette[normalized.uppercase()] = attrName
         }
     }
 
     private fun isAndroidColorReference(value: String): Boolean {
-        return value.startsWith("@android:color/")
+        return value.startsWith(ANDROID_COLOR_RES_PREFIX)
     }
 
     override fun afterCheckRootProject(context: Context) {
@@ -89,44 +84,58 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
             val colorValue = info.colorValue
 
             if (colorValue.startsWith("#")) {
-                // Это сырой HEX цвет
                 val normalizedColorValue = normalizeColor(colorValue)
-
                 if (normalizedColorValue != null) {
-                    val colorName = colorValuesToNamesPalette[normalizedColorValue.uppercase()]
-                    if (colorName != null) {
-
-                        // raw hex color is in palette
-                        info.context.report(
-                            issue = ISSUE,
-                            scope = info.element,
-                            location = info.location,
-                            message = "Color $colorValue is in palette. Don't hardcode colors, use palette references: @color/$colorName",
-                            quickfixData = replaceWithLinkToPaletteFix(info.location, colorName)
-                        )
-
-                    } else {
-
-                        // raw hex color is not in palette
-                        info.context.report(
-                            issue = ISSUE,
-                            scope = info.element,
-                            location = info.location,
-                            message = "Using raw color $colorValue, which is not in the palette. Add it to the palette or use an existing color.",
-                        )
-                    }
+                    reportRawHexColorIssue(normalizedColorValue, info, colorValue)
                 }
-            } else if (colorValue.startsWith("@android:color/")) {
-
-                // system color is used
-                info.context.report(
-                    issue = ISSUE,
-                    scope = info.element,
-                    location = info.location,
-                    message = "System color $colorValue is used. Add the corresponding color to the palette or use an existing one.",
-                )
+            } else if (colorValue.startsWith(ANDROID_COLOR_RES_PREFIX)) {
+                reportSystemColorIssue(info, colorValue)
             }
         }
+    }
+
+    private fun reportRawHexColorIssue(
+        normalizedColorValue: String,
+        info: ColorInfo,
+        colorValue: String
+    ) {
+        val colorName = colorValuesToNamesPalette[normalizedColorValue.uppercase()]
+        if (colorName != null) {
+
+            // raw hex color is in palette
+            info.xmlContext.report(
+                issue = ISSUE,
+                scope = info.element,
+                location = info.location,
+                message = "Color $colorValue is in palette. Don't hardcode colors, use " +
+                        "palette references: @color/$colorName",
+                quickfixData = replaceWithLinkToPaletteFix(info.location, colorName)
+            )
+
+        } else {
+
+            // raw hex color is not in palette
+            info.xmlContext.report(
+                issue = ISSUE,
+                scope = info.element,
+                location = info.location,
+                message = "Using raw color $colorValue, which is not in the palette. " +
+                        "Add it to the palette or use an existing color.",
+            )
+        }
+    }
+
+    private fun reportSystemColorIssue(
+        info: ColorInfo,
+        colorValue: String
+    ) {
+        info.xmlContext.report(
+            issue = ISSUE,
+            scope = info.element,
+            location = info.location,
+            message = "System color $colorValue is used. Add the corresponding color to " +
+                    "the palette or use an existing one.",
+        )
     }
 
     private fun replaceWithLinkToPaletteFix(location: Location, newColor: String): LintFix {
@@ -149,9 +158,10 @@ internal class WrongColorUsageDetector : ResourceXmlDetector() {
         private const val BRIEF_DESCRIPTION = "Should use colors only from palette"
         private const val EXPLANATION =
             "All app colors should be taken from the color palette defined in `colors.xml`"
-        private const val PRIORITY = 6
+        private const val PRIORITY = 3
         private const val PALETTE_RESOURCE_FILE = "colors.xml"
         private const val COLOR_RES_PREFIX = "@color/"
+        private const val ANDROID_COLOR_RES_PREFIX = "@android:color/"
 
         val ISSUE = Issue.create(
             id = ID,
