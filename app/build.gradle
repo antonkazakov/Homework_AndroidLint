@@ -64,6 +64,5 @@ dependencies {
     implementation 'com.google.android.material:material:1.6.1'
     testImplementation 'junit:junit:4.13.2'
 
-//    lintChecks project(":lint-checks")
     implementation project(":library")
 }
