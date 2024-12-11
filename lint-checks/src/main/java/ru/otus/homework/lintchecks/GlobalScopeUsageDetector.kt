@@ -28,7 +28,7 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
         return object : UElementHandler() {
 
             override fun visitSimpleNameReferenceExpression(node: USimpleNameReferenceExpression) {
-                if (node.identifier != CLASS_SIMPLE_NAME) return
+                if (node.identifier != GLOBAL_SCOPE_NAME) return
 
                 val psiElement = node.sourcePsi
                 val enclosingClass: PsiType? = psiElement?.getParentOfType<KtClass>(true)?.toPsiType()
@@ -80,7 +80,7 @@ class GlobalScopeUsageDetector : Detector(), Detector.UastScanner {
     such as viewModelScope or lifecycleScope.
 """
 
-        private const val CLASS_SIMPLE_NAME = "GlobalScope"
+        private const val GLOBAL_SCOPE_NAME = "GlobalScope"
 
         private const val VIEW_MODEL_FULL_CLASS_NAME = "androidx.lifecycle.ViewModel"
         private const val FRAGMENT_FULL_CLASS_NAME = "androidx.fragment.app.Fragment"
