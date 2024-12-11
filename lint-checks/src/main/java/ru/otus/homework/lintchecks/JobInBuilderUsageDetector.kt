@@ -26,18 +26,18 @@ class JobInBuilderUsageDetector : Detector(), Detector.UastScanner {
         return listOf("async", "launch")
     }
 
-    override fun visitMethodCall(context: JavaContext, callExprNode: UCallExpression, method: PsiMethod) {
-        val receiverType = callExprNode.receiverType ?: return
+    override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
+        val receiverType = node.receiverType ?: return
         if (!isSubtypeOf(context, receiverType, COROUTINE_SCOPE_CLASS_FULL)) return
 
-        for (argument in callExprNode.valueArguments) {
+        for (argument in node.valueArguments) {
             if (isValidArgument(context, argument)) {
                 context.report(
                     issue = ISSUE,
-                    scope = callExprNode,
+                    scope = node,
                     location = context.getLocation(argument),
                     message = DESCRIPTION,
-                    quickfixData = createFix(context, callExprNode, argument, getEnclosingClass(callExprNode))
+                    quickfixData = createFix(context, node, argument, getEnclosingClass(node))
                 )
             }
         }
