@@ -13,6 +13,10 @@ dependencies {
     compileOnly "com.android.tools.lint:lint-api:$lintVersion"
     compileOnly "com.android.tools.lint:lint-checks:$lintVersion"
     testImplementation "com.android.tools.lint:lint-tests:$lintVersion"
+    def junitVersion = "4.13.2"
+    testImplementation "com.android.tools.lint:lint-api:$lintVersion"
+    testImplementation "com.android.tools.lint:lint-checks:$lintVersion"
+    testImplementation "junit:junit:$junitVersion"
 }
 
 jar {
