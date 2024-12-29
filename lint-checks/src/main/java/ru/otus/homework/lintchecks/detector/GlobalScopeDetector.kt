@@ -2,17 +2,18 @@
 package ru.otus.homework.lintchecks.detector
 
 import com.android.tools.lint.client.api.UElementHandler
+import com.android.tools.lint.detector.api.Category
 import com.android.tools.lint.detector.api.Detector
+import com.android.tools.lint.detector.api.Implementation
+import com.android.tools.lint.detector.api.Issue
 import com.android.tools.lint.detector.api.JavaContext
 import com.android.tools.lint.detector.api.LintFix
+import com.android.tools.lint.detector.api.Scope
+import com.android.tools.lint.detector.api.Severity
 import com.intellij.psi.PsiClass
 import org.jetbrains.uast.UElement
 import org.jetbrains.uast.USimpleNameReferenceExpression
 import org.jetbrains.uast.getContainingUClass
-import ru.otus.homework.lintchecks.detector.GlobalScopeIssue.BRIEF_DESCRIPTION
-import ru.otus.homework.lintchecks.detector.GlobalScopeIssue.GLOBAL_SCOPE
-import ru.otus.homework.lintchecks.detector.GlobalScopeIssue.ISSUE
-
 
 @Suppress("UnstableApiUsage")
 class GlobalScopeDetector : Detector(), Detector.UastScanner {
@@ -96,6 +97,26 @@ class GlobalScopeDetector : Detector(), Detector.UastScanner {
         return context.evaluator.dependencies?.getAll()?.any {
             it.identifier.contains(artifactName)
         } == true
+    }
+
+    companion object {
+        const val GLOBAL_SCOPE = "GlobalScope"
+        private const val ID = "GlobalScopeUsage"
+        const val BRIEF_DESCRIPTION =
+            "Replace 'GlobalScope' to other 'CoroutineScope'"
+        private const val EXPLANATION =
+            "Корутины, запущенные на kotlinx.coroutines.GlobalScope нужно контролировать вне скоупа класс, в котором они созданы. Контролировать глобальные корутины неудобно, а отсутствие контроля может привести к излишнему использованию ресурсов и утечкам памяти."
+        private const val PRIORITY = 6
+
+        val ISSUE = Issue.create(
+            id = ID,
+            briefDescription = BRIEF_DESCRIPTION,
+            explanation = EXPLANATION,
+            category = Category.LINT,
+            priority = PRIORITY,
+            severity = Severity.WARNING,
+            implementation = Implementation(GlobalScopeDetector::class.java, Scope.JAVA_FILE_SCOPE)
+        )
     }
 }
 

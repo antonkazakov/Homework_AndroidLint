@@ -4,12 +4,12 @@ package ru.otus.homework.lintchecks
 import com.android.tools.lint.checks.infrastructure.LintDetectorTest.kotlin
 import com.android.tools.lint.checks.infrastructure.TestLintTask.lint
 import org.junit.Test
-import ru.otus.homework.lintchecks.detector.GlobalScopeIssue
+import ru.otus.homework.lintchecks.detector.GlobalScopeDetector
 
 @Suppress("UnstableApiUsage")
 internal class GlobalScopeDetectorTest {
 
-    private val lintTask = lint().allowMissingSdk().issues(GlobalScopeIssue.ISSUE)
+    private val lintTask = lint().allowMissingSdk().issues(GlobalScopeDetector.ISSUE)
 
     @Test
     fun `should find globalScope`() {
