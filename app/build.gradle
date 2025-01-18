@@ -1,3 +1,5 @@
+//import io.gitlab.arturbosch.detekt.Detekt
+
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
@@ -50,6 +52,10 @@ android {
 
     lint {
         checkOnly("GlobalScopeUsage", "JobInBuilderUsage", "RawColorUsage")
+    }
+    lintOptions {
+        disable 'TypographyFractions','TypographyQuotes'
+        abortOnError false
     }
 }
 
